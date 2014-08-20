@@ -21,6 +21,7 @@ package org.apache.synapse.inbound;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.ManagedLifecycle;
+import org.apache.synapse.SynapseException;
 import org.apache.synapse.core.SynapseEnvironment;
 import sun.misc.Service;
 
@@ -39,50 +40,52 @@ public class InboundEndpoint implements ManagedLifecycle {
     private boolean isSuspend;
     private String injectingSeq;
     private String onErrorSeq;
-    private String outSequence;
     private Map<String, String> parametersMap = new LinkedHashMap<String, String>();
     private String fileName;
     private SynapseEnvironment synapseEnvironment;
     private InboundRequestProcessor inboundRequestProcessor;
 
-
-    public InboundEndpoint() {
-
-    }
-
     public void init(SynapseEnvironment se) {
         log.info("Initializing Inbound Endpoint: " + getName());
         synapseEnvironment = se;
+
         inboundRequestProcessor = getInboundRequestProcessor();
         if (inboundRequestProcessor != null) {
             inboundRequestProcessor.init();
         } else {
-            log.error("Inbound Request processor not found for Inbound EP : " + name + " Protocol: " + protocol
-                    + " Class" + classImpl);
+            String msg = "Inbound Request processor not found for Inbound EP : " + name +
+                         " Protocol: " + protocol + " Class" + classImpl;
+            log.error(msg);
+            throw new SynapseException(msg);
         }
-        InboundResponseSender inboundResponseSender = getInboundResponseSender();
-        registerResponseSenders(inboundResponseSender, inboundResponseSender.getType());
 
+        if (protocol != null) {
+            // ResponseSenders available only for protocol inbound endpoints
+            InboundResponseSender inboundResponseSender = getInboundResponseSender();
+            if (inboundResponseSender != null) {
+                registerResponseSenders(inboundResponseSender, inboundResponseSender.getType());
+            }
+        }
     }
 
     /**
-     * Register pluggables from the classpath
+     * Get plug-able InboundRequest processors from the classpath
      * <p/>
      * This looks for JAR files containing a META-INF/services that adheres to the following
      * http://docs.oracle.com/javase/6/docs/api/java/util/ServiceLoader.html
      */
     private InboundRequestProcessor getInboundRequestProcessor() {
         if (log.isDebugEnabled()) {
-            log.debug("Registering InboundRequestProcessor found in the classpath.. ");
+            log.debug("Trying to fetch InboundRequestProcessor from classpath.. ");
         }
         Iterator<InboundRequestProcessorFactory> it = Service.providers(InboundRequestProcessorFactory.class);
         while (it.hasNext()) {
             InboundRequestProcessorFactory factory = it.next();
             Properties properties = Utils.paramsToProperties(parametersMap);
 
-            InboundRequestProcessor inboundRequestProcessor = factory.createInboundProcessor(protocol, classImpl, name,
-                    properties, injectingSeq, onErrorSeq,
-                    synapseEnvironment);
+            InboundRequestProcessor inboundRequestProcessor =
+                    factory.createInboundProcessor(protocol, classImpl, name, properties,
+                                                   injectingSeq, onErrorSeq, synapseEnvironment);
             if (inboundRequestProcessor != null) {
                 return inboundRequestProcessor;
             }
@@ -92,22 +95,21 @@ public class InboundEndpoint implements ManagedLifecycle {
 
     private InboundResponseSender getInboundResponseSender() {
         if (log.isDebugEnabled()) {
-            log.debug("Registering InboundResponseProcessor found in the classpath.. ");
+            log.debug("Trying to fetch InboundResponseProcessor from classpath.. ");
         }
         Iterator<InboundResponseSenderFactory> it = Service.providers(InboundResponseSenderFactory.class);
         while (it.hasNext()) {
             InboundResponseSenderFactory factory = it.next();
-            if (protocol != null) {
-                InboundResponseSender inboundResponseSender = factory.getInboundResponseSender(protocol);
-                if (inboundResponseSender != null) {
-                    return inboundResponseSender;
-                }
+            InboundResponseSender inboundResponseSender = factory.getInboundResponseSender(protocol);
+            if (inboundResponseSender != null) {
+                return inboundResponseSender;
             }
         }
         return null;
     }
 
     private void registerResponseSenders(InboundResponseSender inboundResponseSender, String type) {
+        // TODO: Place response senders somewhere else other than utils
         InboundEndpointUtils.addResponseSender(type, inboundResponseSender);
     }
 
@@ -176,14 +178,6 @@ public class InboundEndpoint implements ManagedLifecycle {
 
     public String getParameter(String name) {
         return parametersMap.get(name);
-    }
-
-    public String getOutSequence() {
-        return outSequence;
-    }
-
-    public void setOutSequence(String outSequence) {
-        this.outSequence = outSequence;
     }
 
     public String getClassImpl() {
