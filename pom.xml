@@ -790,6 +790,7 @@
       <commons-lang.version>2.4</commons-lang.version>
       <snmp4j.version>2.0.3</snmp4j.version>
       <snmp4j.agent.version>2.0.5</snmp4j.agent.version>
+       <netty.version>4.0.4.Final</netty.version>
    </properties>
    <developers>
       <!-- If you are a committer and your name is not listed here, please include/edit -->

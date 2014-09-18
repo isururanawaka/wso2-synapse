@@ -49,6 +49,7 @@
                         <Export-Package>
                             org.apache.synapse.transport.http.*,
                             org.apache.synapse.transport.nhttp.*,
+                            org.apache.synapse.transport.netty.*,
 			    org.apache.synapse.transport.passthru.*,
 			    org.apache.synapse.transport.certificatevalidation.*
                         </Export-Package>
@@ -58,7 +59,8 @@
                             *; resolution:=optional
                         </Import-Package>
                         <Embed-Dependency>
-                            bcprov-jdk16;scope=compile|runtime
+                            bcprov-jdk16;scope=compile|runtime,
+                            netty-all;scope=compile
                         </Embed-Dependency>
                     </instructions>
                 </configuration>
@@ -156,7 +158,12 @@
             <version>${hc.httpclient.version}</version>
         </dependency>
 
-
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <scope>compile</scope>
+            <version>${netty.version}</version>
+        </dependency>
 
 
         <!-- The HTTP NIO transport depends on a few methods from the blocking HTTP transport,
