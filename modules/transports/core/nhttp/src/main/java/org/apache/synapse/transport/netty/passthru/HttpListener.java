@@ -48,8 +48,8 @@ import java.util.Locale;
  * Start ServerBootStrap in a given port for http inbound connections
  */
 
-public class PassThroughHttpListener implements TransportListener {
-    private static Logger logger = Logger.getLogger(PassThroughHttpListener.class);
+public class HttpListener implements TransportListener {
+    private static Logger logger = Logger.getLogger(HttpListener.class);
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
@@ -79,21 +79,21 @@ public class PassThroughHttpListener implements TransportListener {
         scheme = initScheme();
 
 
-        int portOffset = Integer.parseInt(System.getProperty(PassThroughConstants.PORT_OFF_SET, "0"));
-        Parameter portParam = transportInDescription.getParameter(PassThroughConstants.PORT);
+        int portOffset = Integer.parseInt(System.getProperty(Constants.PORT_OFF_SET, "0"));
+        Parameter portParam = transportInDescription.getParameter(Constants.PORT);
         if (portParam != null) {
             int port = Integer.parseInt(portParam.getValue().toString());
             port = port + portOffset;
             this.localPort = port;
             portParam.setValue(String.valueOf(port));
             portParam.getParameterElement().setText(String.valueOf(port));
-            System.setProperty(transportInDescription.getName() + PassThroughConstants.NETTY_NIO_PORT, String.valueOf(port));
+            System.setProperty(transportInDescription.getName() + Constants.NETTY_NIO_PORT, String.valueOf(port));
         } else {
             logger.error("Starting port cannnot be null");
             return;
         }
 
-        Object obj = configurationContext.getProperty(PassThroughConstants.PASS_THROUGH_TRANSPORT_WORKER_POOL);
+        Object obj = configurationContext.getProperty(Constants.PASS_THROUGH_TRANSPORT_WORKER_POOL);
         WorkerPool workerPool = null;
         if (obj != null) {
             workerPool = (WorkerPool) obj;
@@ -116,8 +116,7 @@ public class PassThroughHttpListener implements TransportListener {
                     b.option(ChannelOption.SO_BACKLOG, 10000);
                     b.group(bossGroup, workerGroup)
                             .channel(NioServerSocketChannel.class)
-                            .childHandler(new SourceChannelInitializer(sourceConfiguration))
-                            .childOption(ChannelOption.AUTO_READ, false);
+                            .childHandler(new SourceChannelInitializer(sourceConfiguration));
                     Channel ch = null;
                     try {
                         ch = b.bind(localPort).sync().channel();

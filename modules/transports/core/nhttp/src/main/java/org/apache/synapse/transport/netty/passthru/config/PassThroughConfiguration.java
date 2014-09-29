@@ -20,7 +20,7 @@ package org.apache.synapse.transport.netty.passthru.config;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.synapse.transport.netty.passthru.PassThroughConstants;
+import org.apache.synapse.transport.netty.passthru.Constants;
 
 
 import java.io.*;
@@ -136,9 +136,9 @@ public class PassThroughConfiguration {
          
          //if we reach to this assume that the we may have to looking to the customer provided external location for the 
          //given properties
- 		if (System.getProperty(PassThroughConstants.CONF_LOCATION) != null) {
+ 		if (System.getProperty(Constants.CONF_LOCATION) != null) {
  			try {
- 				in = new FileInputStream(System.getProperty(PassThroughConstants.CONF_LOCATION) + File.separator + filePath);
+ 				in = new FileInputStream(System.getProperty(Constants.CONF_LOCATION) + File.separator + filePath);
  			} catch (FileNotFoundException e) {
  				String msg = "Error loading properties from a file at from the System defined location: " + filePath;
  				log.warn(msg);
