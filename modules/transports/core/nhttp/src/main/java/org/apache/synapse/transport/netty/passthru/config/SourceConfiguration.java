@@ -27,11 +27,13 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 
+import org.apache.synapse.commons.util.MiscellaneousUtil;
 import org.apache.synapse.transport.http.conn.Scheme;
 import org.apache.synapse.transport.passthru.HttpGetRequestProcessor;
 import org.apache.synapse.transport.passthru.PassThroughConstants;
 
 import java.net.UnknownHostException;
+import java.util.Properties;
 
 /**
  * This class stores configurations specific to the Listeners
@@ -203,5 +205,17 @@ public class SourceConfiguration extends BaseConfiguration {
     private void handleException(String msg) throws AxisFault {
         log.error(msg);
         throw new AxisFault(msg);
+    }
+
+    public int getBossGroupsize(){
+        Properties properties = MiscellaneousUtil.loadProperties("nettytransport.properties");
+        String bossgroup = properties.getProperty("netty.transport.serverbootstrap.bossgroup", "1");
+       return Integer.parseInt(bossgroup);
+    }
+
+    public int getWorkerGroupsize(){
+        Properties properties = MiscellaneousUtil.loadProperties("nettytransport.properties");
+        String workergroup = properties.getProperty("netty.transport.serverbootstrap.workergroup", "1");
+        return  Integer.parseInt(workergroup);
     }
 }

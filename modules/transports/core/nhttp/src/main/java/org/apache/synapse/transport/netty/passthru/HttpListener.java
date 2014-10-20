@@ -100,8 +100,8 @@ public class HttpListener implements TransportListener {
         }
         sourceConfiguration = new SourceConfiguration(configurationContext, transportInDescription, scheme, workerPool);
         sourceConfiguration.build();
-        bossGroup = new NioEventLoopGroup();
-        workerGroup = new NioEventLoopGroup();
+        bossGroup = new NioEventLoopGroup(sourceConfiguration.getBossGroupsize());
+        workerGroup = new NioEventLoopGroup(sourceConfiguration.getWorkerGroupsize());
 
 
     }
