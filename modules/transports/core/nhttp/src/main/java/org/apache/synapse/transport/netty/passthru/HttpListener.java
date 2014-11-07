@@ -123,7 +123,7 @@ public class HttpListener implements TransportListener {
                         ch.closeFuture().sync();
                         logger.info("Netty Passthrough Http Listner Started");
                     } catch (InterruptedException e) {
-                        logger.error(e.getMessage());
+                        logger.error(e.getMessage(),e);
                     }
                 } finally {
                     bossGroup.shutdownGracefully();

@@ -44,7 +44,7 @@ public class SourceChannelInitializer extends ChannelInitializer<SocketChannel> 
         }
         ChannelPipeline p = ch.pipeline();
         p.addLast(Constants.HTTP_CODEC,new HttpServerCodec());
-        p.addLast(Constants.HTTP_AGREGRATOR,new HttpObjectAggregator(Constants.MAXIMUM_CHUNK_SIZE_AGGREGATOR));
+        p.addLast(Constants.HTTP_AGREGRATOR,new HttpObjectAggregator(Integer.MAX_VALUE));
         p.addLast(Constants.HANDLER, new SourceHandler(sourceConfiguration));
 
     }

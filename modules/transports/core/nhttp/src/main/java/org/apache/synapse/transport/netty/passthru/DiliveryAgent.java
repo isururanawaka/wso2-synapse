@@ -12,12 +12,8 @@ import io.netty.handler.codec.http.*;
 import org.apache.axiom.soap.SOAPEnvelope;
 import org.apache.axis2.addressing.EndpointReference;
 import org.apache.axis2.context.MessageContext;
-import org.apache.commons.io.IOUtils;
 import org.apache.synapse.transport.nhttp.NhttpConstants;
-import org.apache.synapse.transport.passthru.Pipe;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -110,12 +106,8 @@ public  void submitResponse(MessageContext context){
       if(context.getProperty(Constants.CONTENT_RES_BUFFER)!=null){
             byte[] bytes= (byte[]) context.getProperty(Constants.CONTENT_RES_BUFFER);
           FullHttpResponse httpResponse =  getHttpResponseFrombyte(bytes,contentType);
-
           channelHandlerContext.writeAndFlush(httpResponse);
-
         }
-
-
     }
     else {
         FullHttpResponse fullHttpResponse = getHttpResponse(envelope, contentType);
@@ -127,11 +119,20 @@ public  void submitResponse(MessageContext context){
 }
 
 private FullHttpRequest createHttpRequest(MessageContext context,String uri){
-     byte[] byteContent = (byte[]) context.getProperty(Constants.CONTENT_BUFFER);
-     ByteBuf  content = Unpooled.unreleasableBuffer(Unpooled.copiedBuffer(byteContent));
+    Object obj = context.getProperty(Constants.PIPE);
+    Pipe pipe=null;
+    ByteBuf  content=null;
+    Map trailingHeadrs=null;
+    if(obj != null && obj instanceof Pipe){
+         pipe = (Pipe)obj;
+    }
+    if(pipe != null){
+        content =  Unpooled.unreleasableBuffer(Unpooled.copiedBuffer(pipe.readContent()));
+      trailingHeadrs = pipe.getTrailingheaderMap();
+    }
      Map headers = (Map) context.getProperty(MessageContext.TRANSPORT_HEADERS);
 
-     Map trailingHeadrs = (Map) context.getProperty(NhttpConstants.EXCESS_TRANSPORT_HEADERS);
+
      String httpMethod = (String) context.getProperty(org.apache.axis2.Constants.Configuration.HTTP_METHOD);
      HttpMethod httpMethod1 = new HttpMethod(httpMethod);
 
@@ -140,6 +141,7 @@ private FullHttpRequest createHttpRequest(MessageContext context,String uri){
 
 
      FullHttpRequest request = new DefaultFullHttpRequest(httpVersion1,httpMethod1,uri,content);
+
 
       if(headers != null) {
           Iterator iterator = headers.keySet().iterator();

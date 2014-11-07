@@ -74,7 +74,7 @@ private static Logger log = Logger.getLogger(RequestWorker.class);
         messageContext.setProperty(PassThroughConstants.REST_URL_POSTFIX, restUrlPostfix);
 
         messageContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.SOURCE_HANDLER,sourceHandler);
-        messageContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.CONTENT_BUFFER,sourceRequest.getContentBytes());
+        messageContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.PIPE,sourceRequest.getPipe());
         messageContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.HTTP_VERSION,sourceRequest.getHttpVersion().text());
         messageContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.REQUEST,sourceRequest.getFullHttpRequest());
         processEntityEnclosingRequest();
@@ -82,7 +82,7 @@ private static Logger log = Logger.getLogger(RequestWorker.class);
       //  sendAck();
     }
     private MessageContext createMessageContext(Request request) {
-        Map excessHeaders = request.getHttptrailingHeaders();
+     //   Map excessHeaders = request.getHttptrailingHeaders();
         ConfigurationContext cfgCtx = sourceConfiguration.getConfigurationContext();
         MessageContext msgContext =
                 new MessageContext();
@@ -117,7 +117,7 @@ private static Logger log = Logger.getLogger(RequestWorker.class);
             headers.put(entry.getKey(), entry.getValue());
         }
         msgContext.setProperty(MessageContext.TRANSPORT_HEADERS, headers);
-        msgContext.setProperty(NhttpConstants.EXCESS_TRANSPORT_HEADERS, excessHeaders);
+       // msgContext.setProperty(NhttpConstants.EXCESS_TRANSPORT_HEADERS, excessHeaders);
         msgContext.setProperty(RequestResponseTransport.TRANSPORT_CONTROL,
                 new HttpCoreRequestResponseTransport(msgContext));
 

@@ -15,7 +15,6 @@ public class Constants {
     protected  static final String SOAP_ACTION_HEADER = "SOAPAction";
 
     protected static final String SOURCE_HANDLER="SourceHandler";
-    protected static final String CONTENT_BUFFER="ContentBuffer";
     protected  static final String HTTP_VERSION="Http_version";
 
     protected static final String REQUEST="Request";
@@ -23,6 +22,8 @@ public class Constants {
 
     protected static final String CONTENT_RES_BUFFER="ContentResBuffer";
     protected static final String CHANNEL_HANDLER_CONTEXT="ChannelHandlerContext";
+
+    protected static final String PIPE="Pipe";
 
 
 

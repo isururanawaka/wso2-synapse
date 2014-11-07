@@ -14,7 +14,7 @@ public class Request {
     private Map<String, String> httpheaders = new HashMap<String, String>();
 
     private ChannelHandlerContext inboundChannelHandlerContext;
-    private Map<String, String> httptrailingHeaders = new HashMap<String, String>();
+
     private Bootstrap bootstrap;
 
     private HttpMethod httpMethod;
@@ -24,11 +24,13 @@ public class Request {
 
     private FullHttpRequest fullHttpRequest;
     private byte[] contentBytes;
-    private byte[] trailingHeaders;
+
 
 
     private String to;
     private String replyTo;
+
+    private Pipe pipe;
 
     public ChannelHandlerContext getInboundChannelHandlerContext() {
         return inboundChannelHandlerContext;
@@ -55,25 +57,17 @@ public class Request {
     }
 
 
-
-
-
-    public Map<String, String> getHttptrailingHeaders() {
-        return httptrailingHeaders;
+    public Pipe getPipe() {
+        return pipe;
     }
 
-    public void addHttpTrailingheaders(String key, String value) {
-        this.httptrailingHeaders.put(key, value);
+    public void setPipe(Pipe pipe) {
+        this.pipe = pipe;
     }
 
 
-    public byte[] getTrailingHeaders() {
-        return trailingHeaders;
-    }
 
-    public void setTrailingHeaders(byte[] trailingHeaders) {
-        this.trailingHeaders = trailingHeaders;
-    }
+
 
     public byte[] getContentBytes() {
         return contentBytes;
