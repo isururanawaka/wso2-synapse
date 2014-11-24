@@ -12,7 +12,6 @@ import io.netty.handler.codec.http.*;
 import org.apache.axiom.soap.SOAPEnvelope;
 import org.apache.axis2.addressing.EndpointReference;
 import org.apache.axis2.context.MessageContext;
-import org.apache.synapse.transport.nhttp.NhttpConstants;
 
 import java.net.MalformedURLException;
 import java.net.URI;

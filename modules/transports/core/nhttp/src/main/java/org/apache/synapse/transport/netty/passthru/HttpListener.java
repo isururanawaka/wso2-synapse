@@ -102,8 +102,6 @@ public class HttpListener implements TransportListener {
         sourceConfiguration.build();
         bossGroup = new NioEventLoopGroup(sourceConfiguration.getBossGroupsize());
         workerGroup = new NioEventLoopGroup(sourceConfiguration.getWorkerGroupsize());
-
-
     }
 
     public void start() {
@@ -113,10 +111,18 @@ public class HttpListener implements TransportListener {
 
                 try {
                     ServerBootstrap b = new ServerBootstrap();
-                    b.option(ChannelOption.SO_BACKLOG, 10000);
+                    b.option(ChannelOption.SO_BACKLOG, sourceConfiguration.getBackLog());
                     b.group(bossGroup, workerGroup)
                             .channel(NioServerSocketChannel.class)
                             .childHandler(new SourceChannelInitializer(sourceConfiguration));
+                    b.childOption(ChannelOption.TCP_NODELAY, true);
+                    b.option(ChannelOption.SO_KEEPALIVE, true);
+                    b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 15000);
+
+                    b.option(ChannelOption.SO_SNDBUF, 1048576);
+                    b.option(ChannelOption.SO_RCVBUF, 1048576);
+                    b.childOption(ChannelOption.SO_RCVBUF, 1048576);
+                    b.childOption(ChannelOption.SO_SNDBUF, 1048576);
                     Channel ch = null;
                     try {
                         ch = b.bind(localPort).sync().channel();

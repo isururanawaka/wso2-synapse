@@ -37,10 +37,16 @@ public class SourceHandler extends ChannelInboundHandlerAdapter {
         final Channel inboundChannel = ctx.channel();
         targetHandler = new TargetHandler(sourceConfiguration,inboundChannel);
 
-      bootstrap = new Bootstrap();
+        bootstrap = new Bootstrap();
         bootstrap.group(inboundChannel.eventLoop())
                 .channel(ctx.channel().getClass())
                 .handler(new TargetChannelinitializer(targetHandler));
+        bootstrap.option(ChannelOption.TCP_NODELAY, true);
+        bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS,15000);
+//        b.option(ChannelOption.SO_SNDBUF, 1024*5);
+//        b.option(ChannelOption.SO_RCVBUF, 1024*50);
+        bootstrap.option(ChannelOption.SO_SNDBUF, 1048576);
+        bootstrap.option(ChannelOption.SO_RCVBUF, 1048576);
 
     }
 

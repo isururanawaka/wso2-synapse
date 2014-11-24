@@ -218,4 +218,10 @@ public class SourceConfiguration extends BaseConfiguration {
         String workergroup = properties.getProperty("netty.transport.serverbootstrap.workergroup", "1");
         return  Integer.parseInt(workergroup);
     }
+
+    public int getBackLog(){
+        Properties properties = MiscellaneousUtil.loadProperties("nettytransport.properties");
+        String backlog = properties.getProperty("netty.transport.serverbootstrap.backlog", "10000");
+        return  Integer.parseInt(backlog);
+    }
 }
