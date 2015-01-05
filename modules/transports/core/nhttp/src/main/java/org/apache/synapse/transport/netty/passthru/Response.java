@@ -27,7 +27,15 @@ public class Response {
 
     private String statusLine = "OK";
 
+    private Pipe pipe;
 
+    public Pipe getPipe() {
+        return pipe;
+    }
+
+    public void setPipe(Pipe pipe) {
+        this.pipe = pipe;
+    }
 
     public ChannelHandlerContext getInboundChannelHandlerContext() {
         return inboundChannelHandlerContext;

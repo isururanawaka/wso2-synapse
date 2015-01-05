@@ -1,16 +1,18 @@
 package org.apache.synapse.transport.netty.passthru;
 
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.DefaultHttpContent;
+import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.LastHttpContent;
 import org.apache.axis2.context.MessageContext;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
 import org.apache.synapse.transport.netty.passthru.config.SourceConfiguration;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class TargetHandler extends ChannelInboundHandlerAdapter {
 
@@ -18,6 +20,7 @@ private Channel inboundChannel;
 private SourceConfiguration sourceConfiguration;
 private MessageContext messageContext;
 
+    private List<Response> responseList = new ArrayList<Response>();
 
 public TargetHandler(SourceConfiguration sourceConfiguration, Channel inboundChannel){
     this.inboundChannel = inboundChannel;
@@ -29,30 +32,62 @@ public TargetHandler(SourceConfiguration sourceConfiguration, Channel inboundCha
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        Response response = new Response();
-      if(msg instanceof FullHttpResponse){
-          FullHttpResponse fullHttpResponse = (FullHttpResponse) msg;
-          HttpHeaders headers = fullHttpResponse.headers();
-          for (String val : headers.names()) {
-              response.addHttpheaders(val, headers.get(val));
-          }
 
-          ByteBuf buf = fullHttpResponse.content();
-          byte[] bytes = new byte[buf.readableBytes()];
-          buf.readBytes(bytes);
-          response.setContentBytes(bytes);
-          HttpHeaders trailingHeaders = fullHttpResponse.trailingHeaders();
-          for (String val : trailingHeaders.names()) {
-              response.addHttpTrailingheaders(val, trailingHeaders.get(val));
-          }
-         response.setStatus(fullHttpResponse.getStatus().code());
-          response.setStatusLine(fullHttpResponse.getStatus().toString());
-      }
+//      if(msg instanceof FullHttpResponse){
+//          FullHttpResponse fullHttpResponse = (FullHttpResponse) msg;
+//          HttpHeaders headers = fullHttpResponse.headers();
+//          for (String val : headers.names()) {
+//              response.addHttpheaders(val, headers.get(val));
+//          }
+//
+//          ByteBuf buf = fullHttpResponse.content();
+//          byte[] bytes = new byte[buf.readableBytes()];
+//          buf.readBytes(bytes);
+//          response.setContentBytes(bytes);
+//          HttpHeaders trailingHeaders = fullHttpResponse.trailingHeaders();
+//          for (String val : trailingHeaders.names()) {
+//              response.addHttpTrailingheaders(val, trailingHeaders.get(val));
+//          }
+//         response.setStatus(fullHttpResponse.getStatus().code());
+//          response.setStatusLine(fullHttpResponse.getStatus().toString());
+//      }
+        if(msg instanceof DefaultHttpResponse){
+            Response response = new Response();
+            DefaultHttpResponse defaultHttpResponse = (DefaultHttpResponse) msg;
+            HttpHeaders headers = defaultHttpResponse.headers();
+            for (String val : headers.names()) {
+                response.addHttpheaders(val, headers.get(val));
+            }
+            response.setStatus(defaultHttpResponse.getStatus().code());
+            response.setStatusLine(defaultHttpResponse.getStatus().toString());
+            response.setPipe(new Pipe("TargetPipe"));
+            responseList.add(response);
+            sourceConfiguration.getWorkerPool().execute(new ResponseWorker(messageContext,response,sourceConfiguration));
+        }else if(msg instanceof DefaultHttpContent){
+            if(responseList.get(0) != null){
+                DefaultHttpContent defaultHttpContent = (DefaultHttpContent)msg;
+                //  responseList.get(0).getPipe().writeContent(defaultHttpContent);
+                responseList.get(0).getPipe().addContent(defaultHttpContent);
 
-        sourceConfiguration.getWorkerPool().execute(new ResponseWorker(messageContext,response,sourceConfiguration));
+            }else{
+            }
+        }else if(msg instanceof LastHttpContent){
+            if(responseList.get(0) != null){
+                LastHttpContent defaultLastHttpContent = (LastHttpContent)msg;
+//                HttpHeaders trailingHeaders = defaultLastHttpContent.trailingHeaders();
+//                for (String val : trailingHeaders.names()) {
+//                    responseList.get(0).getPipe().addTrailingHeader(val,trailingHeaders.get(val));
+//                }
+                responseList.get(0).getPipe().addContent(defaultLastHttpContent);
+                responseList.remove(0);
+            }else{
+//                logger.error("Cannot correlate source request with content");
+            }
+        }else{
+//            logger.error("Request is not a HttpRequest");
+        }
 
-
-
+    //    sourceConfiguration.getWorkerPool().execute(new ResponseWorker(messageContext,response,sourceConfiguration));
 
     }
 

@@ -3,10 +3,15 @@ package org.apache.synapse.transport.netty.passthru;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.DefaultHttpContent;
+import io.netty.handler.codec.http.HttpContent;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -18,6 +23,9 @@ public class Pipe {
 private String name ="Buffer";
 
 private byte[] content;
+
+ private BlockingQueue<HttpContent> contentQueue = new LinkedBlockingQueue<HttpContent>();
+
 
 private Map   trailingheaders = new ConcurrentHashMap<String, String>();
 
@@ -89,5 +97,17 @@ public Map getTrailingheaderMap(){
         }
     }
 
+   public HttpContent getContent(){
+       try {
+           return  contentQueue.take();
+       } catch (InterruptedException e) {
+           e.printStackTrace();
+           return null;
+       }
+   }
+
+   public void addContent(HttpContent defaultHttpContent){
+       contentQueue.add(defaultHttpContent);
+   }
 
 }

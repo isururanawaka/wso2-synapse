@@ -23,6 +23,7 @@ import java.util.Map;
 import static io.netty.handler.codec.http.HttpHeaders.Names.CONNECTION;
 import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
+import static io.netty.handler.codec.http.HttpHeaders.Names.TRANSFER_ENCODING;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
@@ -46,7 +47,8 @@ public  void submitRequest(final MessageContext context, EndpointReference endpo
 
     }
 
-   final FullHttpRequest fullHttpRequest = createHttpRequest(context, uri.toString());
+ // final FullHttpRequest fullHttpRequest = createFullHttpRequest(context, uri.toString());
+  final HttpRequest httpRequest = createHttpRequest(context,uri.toString());
    if(sourceHandler.getChannelFuture()==null){
        Bootstrap b = sourceHandler.getBootstrap();
        ChannelFuture future = b.connect(url.getHost(), url.getPort());
@@ -58,7 +60,24 @@ public  void submitRequest(final MessageContext context, EndpointReference endpo
                                   if (future.isSuccess()) {
                                       // connection complete start to read first data
                                       requestWorker.getTargetHandler().setMessageContext(context);
-                                      outboundChannel.writeAndFlush(fullHttpRequest);
+
+                                 //    outboundChannel.writeAndFlush(fullHttpRequest);
+                                      outboundChannel.write(httpRequest);
+                                    Object obj =  context.getProperty(Constants.PIPE);
+                                      Pipe pipe =null;
+                                      if(obj != null && obj instanceof Pipe){
+                                          pipe = (Pipe)obj;
+                                      }
+                                      while (true){
+                                          HttpContent defaultHttpContent = pipe.getContent();
+                                          if(defaultHttpContent instanceof LastHttpContent){
+                                              outboundChannel.writeAndFlush(defaultHttpContent);
+                                              break;
+                                          }
+                                          if(defaultHttpContent != null) {
+                                              outboundChannel.write(defaultHttpContent);
+                                          }
+                                      }
                                      sourceHandler.setChannelFuture(future);
                                       sourceHandler.setChannel(outboundChannel);
                                   } else {
@@ -72,7 +91,24 @@ public  void submitRequest(final MessageContext context, EndpointReference endpo
        ChannelFuture future = sourceHandler.getChannelFuture();
        if(future.isSuccess() && sourceHandler.getChannel().isActive()){
            requestWorker.getTargetHandler().setMessageContext(context);
-         sourceHandler.getChannel().writeAndFlush(fullHttpRequest);
+
+     //  sourceHandler.getChannel().writeAndFlush(fullHttpRequest);
+           sourceHandler.getChannel().write(httpRequest);
+
+           Object obj =  context.getProperty(Constants.PIPE);
+           Pipe pipe =null;
+           if(obj != null && obj instanceof Pipe){
+               pipe = (Pipe)obj;
+           }
+           while (true){
+               HttpContent defaultHttpContent = pipe.getContent();
+               if(defaultHttpContent instanceof LastHttpContent){
+                   sourceHandler.getChannel().writeAndFlush(defaultHttpContent);
+                   break;
+               }
+               sourceHandler.getChannel().write(defaultHttpContent);
+           }
+
        }else{
            Bootstrap b = sourceHandler.getBootstrap();
           final  ChannelFuture  futuretwo = b.connect(url.getHost(), url.getPort());
@@ -83,8 +119,25 @@ public  void submitRequest(final MessageContext context, EndpointReference endpo
                    if (futuretwo.isSuccess()) {
                        // connection complete start to read first data
                        requestWorker.getTargetHandler().setMessageContext(context);
-                       outboundChannel.writeAndFlush(fullHttpRequest);
+
+              //     outboundChannel.writeAndFlush(fullHttpRequest);
+                       outboundChannel.write(httpRequest);
+
+                       Object obj =  context.getProperty(Constants.PIPE);
+                       Pipe pipe =null;
+                       if(obj != null && obj instanceof Pipe){
+                           pipe = (Pipe)obj;
+                       }
+                       while (true){
+                           HttpContent defaultHttpContent = pipe.getContent();
+                           if(defaultHttpContent instanceof LastHttpContent){
+                               outboundChannel.writeAndFlush(defaultHttpContent);
+                               break;
+                           }
+                           outboundChannel.write(defaultHttpContent);
+                       }
                        sourceHandler.setChannelFuture(future);
+
                    } else {
                        // Close the connection if the connection attempt has failed.
                        outboundChannel.close();
@@ -102,11 +155,10 @@ public  void submitResponse(MessageContext context){
     String contentType = (String) (context.getProperty(Constants.CONTENT_TYPE));
     ChannelHandlerContext channelHandlerContext = (ChannelHandlerContext) context.getProperty(Constants.CHANNEL_HANDLER_CONTEXT);
     if (envelope.getBody().getFirstElement() == null) {
-      if(context.getProperty(Constants.CONTENT_RES_BUFFER)!=null){
-            byte[] bytes= (byte[]) context.getProperty(Constants.CONTENT_RES_BUFFER);
-          FullHttpResponse httpResponse =  getHttpResponseFrombyte(bytes,contentType);
-          channelHandlerContext.writeAndFlush(httpResponse);
-        }
+
+      writeResponse(channelHandlerContext,context,contentType);
+     //     channelHandlerContext.writeAndFlush(httpResponse);
+
     }
     else {
         FullHttpResponse fullHttpResponse = getHttpResponse(envelope, contentType);
@@ -117,7 +169,7 @@ public  void submitResponse(MessageContext context){
 
 }
 
-private FullHttpRequest createHttpRequest(MessageContext context,String uri){
+private FullHttpRequest createFullHttpRequest(MessageContext context, String uri){
     Object obj = context.getProperty(Constants.PIPE);
     Pipe pipe=null;
     ByteBuf  content=null;
@@ -125,9 +177,23 @@ private FullHttpRequest createHttpRequest(MessageContext context,String uri){
     if(obj != null && obj instanceof Pipe){
          pipe = (Pipe)obj;
     }
+
     if(pipe != null){
-        content =  Unpooled.unreleasableBuffer(Unpooled.copiedBuffer(pipe.readContent()));
-      trailingHeadrs = pipe.getTrailingheaderMap();
+
+        content =  null;
+        while (true){
+           HttpContent httpContent = pipe.getContent();
+            if(httpContent instanceof DefaultHttpContent){
+                ByteBuf byteBuf = ((DefaultHttpContent)httpContent).content();
+                byte[] bytes = new byte[byteBuf.readableBytes()];
+                byteBuf.readBytes(bytes);
+                content = Unpooled.unreleasableBuffer(Unpooled.copiedBuffer(bytes));
+               // content.writeBytes(bytes);
+            }else if(httpContent instanceof LastHttpContent){
+                trailingHeadrs = pipe.getTrailingheaderMap();
+                break;
+            }
+        }
     }
      Map headers = (Map) context.getProperty(MessageContext.TRANSPORT_HEADERS);
 
@@ -158,6 +224,38 @@ private FullHttpRequest createHttpRequest(MessageContext context,String uri){
     }
    return request;
 }
+
+    private HttpRequest createHttpRequest(MessageContext context, String uri) {
+
+        Map headers = (Map) context.getProperty(MessageContext.TRANSPORT_HEADERS);
+
+
+        String httpMethod = (String) context.getProperty(org.apache.axis2.Constants.Configuration.HTTP_METHOD);
+        HttpMethod httpMethod1 = new HttpMethod(httpMethod);
+
+        String httpVersion = (String) context.getProperty(Constants.HTTP_VERSION);
+        HttpVersion httpVersion1 = new HttpVersion(httpVersion, true);
+
+
+        HttpRequest request = new DefaultHttpRequest(httpVersion1, httpMethod1, uri);
+
+
+        if (headers != null) {
+            Iterator iterator = headers.keySet().iterator();
+            while (iterator.hasNext()) {
+                String key = (String) iterator.next();
+                request.headers().add(key, headers.get(key));
+            }
+        }
+
+        return request;
+    }
+
+
+
+
+
+
     private FullHttpResponse getHttpResponse(SOAPEnvelope soapEnvelope, String ContentType) {
         byte[] bytes = soapEnvelope.toString().getBytes();
         ByteBuf CONTENT = Unpooled.unreleasableBuffer(Unpooled.copiedBuffer(bytes));
@@ -168,16 +266,59 @@ private FullHttpRequest createHttpRequest(MessageContext context,String uri){
         return response;
     }
 
-    private FullHttpResponse getHttpResponseFrombyte(byte[] bytes, String ContentType) {
-
-        ByteBuf CONTENT = Unpooled.unreleasableBuffer(Unpooled.copiedBuffer(bytes));
-        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, OK, CONTENT.duplicate());
+    private FullHttpResponse getHttpResponseFrombyte(MessageContext context, String ContentType) {
+        Pipe pipe = (Pipe) context.getProperty(Constants.PIPE);
+        ByteBuf content =Unpooled.unreleasableBuffer(Unpooled.buffer());;
+        while (true){
+            HttpContent httpContent = pipe.getContent();
+            if(httpContent instanceof DefaultHttpContent){
+                ByteBuf byteBuf = ((DefaultHttpContent)httpContent).content();
+                byte[] bytes = new byte[byteBuf.readableBytes()];
+                byteBuf.readBytes(bytes);
+                content.writeBytes(bytes);
+                // content.writeBytes(bytes);
+            }else if(httpContent instanceof LastHttpContent){
+            //    trailingHeadrs = pipe.getTrailingheaderMap();
+                break;
+            }
+        }
+        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, OK, content);
         response.headers().set(CONTENT_TYPE, ContentType);
         response.headers().set(CONTENT_LENGTH, response.content().readableBytes());
         response.headers().set(CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
         return response;
 
     }
+private void writeResponse(ChannelHandlerContext channelHandlerContext, MessageContext context, String ContentType){
+    Pipe pipe = (Pipe) context.getProperty(Constants.PIPE);
+    ByteBuf content =Unpooled.unreleasableBuffer(Unpooled.buffer());;
+    DefaultHttpResponse defaultHttpResponse = new DefaultHttpResponse(HTTP_1_1,OK);
+    Map headers = (Map) context.getProperty(MessageContext.TRANSPORT_HEADERS);
+    if(headers != null) {
+        Iterator iterator = headers.keySet().iterator();
+        while (iterator.hasNext()) {
+            String key = (String) iterator.next();
+            defaultHttpResponse.headers().add(key, headers.get(key));
+        }
+    }
+    channelHandlerContext.write(defaultHttpResponse);
+    while (true){
+        HttpContent httpContent = pipe.getContent();
+        if(httpContent instanceof DefaultHttpContent){
+//            ByteBuf byteBuf = ((DefaultHttpContent)httpContent).content();
+//            byte[] bytes = new byte[byteBuf.readableBytes()];
+//            byteBuf.readBytes(bytes);
+//            content.writeBytes(bytes);
+            // content.writeBytes(bytes);
+            channelHandlerContext.write(httpContent);
+        }else if(httpContent instanceof LastHttpContent){
+            //    trailingHeadrs = pipe.getTrailingheaderMap();
+            channelHandlerContext.writeAndFlush(httpContent);
+            break;
+        }
+    }
+
+}
 
 
 }

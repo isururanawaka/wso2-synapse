@@ -24,7 +24,7 @@ public class TargetChannelinitializer extends ChannelInitializer<SocketChannel> 
         ChannelPipeline p = ch.pipeline();
         p.addLast("codec", new HttpClientCodec());
        // p.addLast(Constants.HTTP_CODEC,new HttpServerCodec());
-        p.addLast(Constants.HTTP_AGREGRATOR, new HttpObjectAggregator(Integer.MAX_VALUE));
+//        p.addLast(Constants.HTTP_AGREGRATOR, new HttpObjectAggregator(Integer.MAX_VALUE));
         p.addLast(Constants.HANDLER, targetHandler);
 
     }

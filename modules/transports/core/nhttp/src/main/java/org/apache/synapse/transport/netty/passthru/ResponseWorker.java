@@ -207,7 +207,7 @@ public class ResponseWorker implements Runnable{
                 responseMsgCtx.setProperty(PassThroughConstants.MESSAGE_BUILDER_INVOKED, Boolean.TRUE);
             }*/
             responseMsgCtx.setProperty(PassThroughConstants.NON_BLOCKING_TRANSPORT, true);
-
+            responseMsgCtx.setProperty(org.apache.synapse.transport.netty.passthru.Constants.PIPE,sourceRes.getPipe());
             // process response received
             try {
                 AxisEngine.receive(responseMsgCtx);

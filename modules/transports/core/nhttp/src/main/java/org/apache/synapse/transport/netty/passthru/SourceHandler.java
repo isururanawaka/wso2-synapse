@@ -52,71 +52,74 @@ public class SourceHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        Request sourceRequest = new Request();
-        if (msg instanceof DefaultFullHttpRequest) {
-            FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
-            HttpHeaders headers = fullHttpRequest.headers();
-            for (String val : headers.names()) {
-                sourceRequest.addHttpheaders(val, headers.get(val));
-            }
-            sourceRequest.setTo(fullHttpRequest.getUri());
-            sourceRequest.setPipe(new Pipe("sourcePipe"));
-            ByteBuf buf = fullHttpRequest.content();
-            byte[] bytes = new byte[buf.readableBytes()];
-            buf.readBytes(bytes);
-            sourceRequest.setContentBytes(bytes);
-            HttpHeaders trailingHeaders = fullHttpRequest.trailingHeaders();
-            for (String val : trailingHeaders.names()) {
-                sourceRequest.getPipe().addTrailingHeader(val,trailingHeaders.get(val));
-            }
-            sourceRequest.setHttpMethod(fullHttpRequest.getMethod());
-            sourceRequest.setHttpVersion(fullHttpRequest.getProtocolVersion());
-            sourceRequest.setUri(fullHttpRequest.getUri());
-            sourceRequest.getPipe().writeFullContent(bytes);
-            sourceRequest.setInboundChannelHandlerContext(ctx);
-            sourceRequest.setBootstrap(bootstrap);
-            sourceConfiguration.getWorkerPool().execute(new RequestWorker(targetHandler,sourceRequest,this,sourceConfiguration));
-        }
-//        Request sourceRequest;
-//           if(msg instanceof DefaultHttpRequest){
-//               sourceRequest = new Request();
-//
-//               sourceRequest = new Request();
-//               DefaultHttpRequest defaultHttpRequest = (DefaultHttpRequest) msg;
-//               HttpHeaders headers = defaultHttpRequest.headers();
-//               for (String val : headers.names()) {
-//                   sourceRequest.addHttpheaders(val, headers.get(val));
-//               }
-//               sourceRequest.setTo(defaultHttpRequest.getUri());
-//               sourceRequest.setHttpMethod(defaultHttpRequest.getMethod());
-//               sourceRequest.setHttpVersion(defaultHttpRequest.getProtocolVersion());
-//               sourceRequest.setUri(defaultHttpRequest.getUri());
-//               sourceRequest.setInboundChannelHandlerContext(ctx);
-//               sourceRequest.setBootstrap(bootstrap);
-//               sourceRequest.setPipe(new Pipe("sourcePipe"));
-//               requestList.add(sourceRequest);
-//               sourceConfiguration.getWorkerPool().execute(new RequestWorker(targetHandler,sourceRequest,this,sourceConfiguration));
-//           }else if(msg instanceof DefaultHttpContent){
-//               if(requestList.get(0) != null){
-//                   DefaultHttpContent defaultHttpContent = (DefaultHttpContent)msg;
-//                  requestList.get(0).getPipe().writeContent(defaultHttpContent);
-//               }else{
-//                   logger.error("Cannot correlate source request with content");
-//               }
-//           }else if(msg instanceof LastHttpContent){
-//               if(requestList.get(0) != null){
-//                   DefaultLastHttpContent defaultLastHttpContent = (DefaultLastHttpContent)msg;
-//                   HttpHeaders trailingHeaders = defaultLastHttpContent.trailingHeaders();
-//                   for (String val : trailingHeaders.names()) {
-//                       requestList.get(0).getPipe().addTrailingHeader(val,trailingHeaders.get(val));
-//                   }
-//                  requestList.remove(0);
-//               }else{
-//                   logger.error("Cannot correlate source request with content");
-//               }
-//           }else{
-//              logger.error("Request is not a HttpRequest");
-//           }
+//        Request sourceRequest = new Request();
+//        if (msg instanceof DefaultFullHttpRequest) {
+//            FullHttpRequest fullHttpRequest = (FullHttpRequest) msg;
+//            HttpHeaders headers = fullHttpRequest.headers();
+//            for (String val : headers.names()) {
+//                sourceRequest.addHttpheaders(val, headers.get(val));
+//            }
+//            sourceRequest.setTo(fullHttpRequest.getUri());
+//            sourceRequest.setPipe(new Pipe("sourcePipe"));
+//            ByteBuf buf = fullHttpRequest.content();
+//            byte[] bytes = new byte[buf.readableBytes()];
+//            buf.readBytes(bytes);
+//            sourceRequest.setContentBytes(bytes);
+//            HttpHeaders trailingHeaders = fullHttpRequest.trailingHeaders();
+//            for (String val : trailingHeaders.names()) {
+//                sourceRequest.getPipe().addTrailingHeader(val,trailingHeaders.get(val));
+//            }
+//            sourceRequest.setHttpMethod(fullHttpRequest.getMethod());
+//            sourceRequest.setHttpVersion(fullHttpRequest.getProtocolVersion());
+//            sourceRequest.setUri(fullHttpRequest.getUri());
+//            sourceRequest.getPipe().writeFullContent(bytes);
+//            sourceRequest.setInboundChannelHandlerContext(ctx);
+//            sourceRequest.setBootstrap(bootstrap);
+//            sourceConfiguration.getWorkerPool().execute(new RequestWorker(targetHandler,sourceRequest,this,sourceConfiguration));
+//        }
+
+
+        Request sourceRequest=null;
+           if(msg instanceof DefaultHttpRequest){
+               sourceRequest = new Request();
+               DefaultHttpRequest defaultHttpRequest = (DefaultHttpRequest) msg;
+               HttpHeaders headers = defaultHttpRequest.headers();
+               for (String val : headers.names()) {
+                   sourceRequest.addHttpheaders(val, headers.get(val));
+               }
+               sourceRequest.setTo(defaultHttpRequest.getUri());
+               sourceRequest.setHttpMethod(defaultHttpRequest.getMethod());
+               sourceRequest.setHttpVersion(defaultHttpRequest.getProtocolVersion());
+               sourceRequest.setUri(defaultHttpRequest.getUri());
+               sourceRequest.setInboundChannelHandlerContext(ctx);
+               sourceRequest.setBootstrap(bootstrap);
+               sourceRequest.setPipe(new Pipe("sourcePipe"));
+               requestList.add(sourceRequest);
+               sourceConfiguration.getWorkerPool().execute(new RequestWorker(targetHandler,sourceRequest,this,sourceConfiguration));
+           }else if(msg instanceof DefaultHttpContent){
+               if(requestList.get(0) != null){
+                   DefaultHttpContent defaultHttpContent = (DefaultHttpContent)msg;
+                //  requestList.get(0).getPipe().writeContent(defaultHttpContent);
+                   requestList.get(0).getPipe().addContent(defaultHttpContent);
+
+               }else{
+                   logger.error("Cannot correlate source request with content");
+               }
+           }else if(msg instanceof LastHttpContent){
+               if(requestList.get(0) != null){
+                   LastHttpContent defaultLastHttpContent = (LastHttpContent)msg;
+                   HttpHeaders trailingHeaders = defaultLastHttpContent.trailingHeaders();
+                   for (String val : trailingHeaders.names()) {
+                       requestList.get(0).getPipe().addTrailingHeader(val,trailingHeaders.get(val));
+                   }
+                   requestList.get(0).getPipe().addContent(defaultLastHttpContent);
+                  requestList.remove(0);
+               }else{
+                   logger.error("Cannot correlate source request with content");
+               }
+           }else{
+              logger.error("Request is not a HttpRequest");
+           }
 
 
     }
