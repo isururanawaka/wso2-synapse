@@ -22,6 +22,7 @@ public class SourceHandler extends ChannelInboundHandlerAdapter {
     private Channel channel;
 
     private List<Request> requestList = new ArrayList<Request>();
+    int count=0;
 
 
 
@@ -47,6 +48,8 @@ public class SourceHandler extends ChannelInboundHandlerAdapter {
 //        b.option(ChannelOption.SO_RCVBUF, 1024*50);
         bootstrap.option(ChannelOption.SO_SNDBUF, 1048576);
         bootstrap.option(ChannelOption.SO_RCVBUF, 1048576);
+//        count++;
+//        logger.info("Souce Channel Active ##########################################   " +count);
 
     }
 
@@ -79,10 +82,11 @@ public class SourceHandler extends ChannelInboundHandlerAdapter {
 //        }
 
 
+
         Request sourceRequest=null;
-           if(msg instanceof DefaultHttpRequest){
+           if(msg instanceof HttpRequest){
                sourceRequest = new Request();
-               DefaultHttpRequest defaultHttpRequest = (DefaultHttpRequest) msg;
+               HttpRequest defaultHttpRequest = (HttpRequest) msg;
                HttpHeaders headers = defaultHttpRequest.headers();
                for (String val : headers.names()) {
                    sourceRequest.addHttpheaders(val, headers.get(val));
@@ -96,29 +100,24 @@ public class SourceHandler extends ChannelInboundHandlerAdapter {
                sourceRequest.setPipe(new Pipe("sourcePipe"));
                requestList.add(sourceRequest);
                sourceConfiguration.getWorkerPool().execute(new RequestWorker(targetHandler,sourceRequest,this,sourceConfiguration));
-           }else if(msg instanceof DefaultHttpContent){
+           }else if(msg instanceof HttpContent){
                if(requestList.get(0) != null){
-                   DefaultHttpContent defaultHttpContent = (DefaultHttpContent)msg;
-                //  requestList.get(0).getPipe().writeContent(defaultHttpContent);
-                   requestList.get(0).getPipe().addContent(defaultHttpContent);
-
-               }else{
-                   logger.error("Cannot correlate source request with content");
-               }
-           }else if(msg instanceof LastHttpContent){
-               if(requestList.get(0) != null){
-                   LastHttpContent defaultLastHttpContent = (LastHttpContent)msg;
-                   HttpHeaders trailingHeaders = defaultLastHttpContent.trailingHeaders();
-                   for (String val : trailingHeaders.names()) {
-                       requestList.get(0).getPipe().addTrailingHeader(val,trailingHeaders.get(val));
+                   if(msg instanceof LastHttpContent){
+                       LastHttpContent defaultLastHttpContent = (LastHttpContent)msg;
+                       HttpHeaders trailingHeaders = defaultLastHttpContent.trailingHeaders();
+                       for (String val : trailingHeaders.names()) {
+                           requestList.get(0).getPipe().addTrailingHeader(val,trailingHeaders.get(val));
+                       }
+                       requestList.get(0).getPipe().addContent(defaultLastHttpContent);
+                       requestList.remove(0);
+                   }else{
+                       HttpContent defaultHttpContent = (HttpContent)msg;
+                       // requestList.get(0).getPipe().writeContent(defaultHttpContent);
+                       requestList.get(0).getPipe().addContent(defaultHttpContent);
                    }
-                   requestList.get(0).getPipe().addContent(defaultLastHttpContent);
-                  requestList.remove(0);
                }else{
                    logger.error("Cannot correlate source request with content");
                }
-           }else{
-              logger.error("Request is not a HttpRequest");
            }
 
 

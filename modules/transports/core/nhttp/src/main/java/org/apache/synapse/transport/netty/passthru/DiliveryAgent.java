@@ -8,7 +8,20 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.DefaultFullHttpRequest;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.DefaultHttpContent;
+import io.netty.handler.codec.http.DefaultHttpRequest;
+import io.netty.handler.codec.http.DefaultHttpResponse;
+import io.netty.handler.codec.http.DefaultLastHttpContent;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpContent;
+import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.http.LastHttpContent;
 import org.apache.axiom.soap.SOAPEnvelope;
 import org.apache.axis2.addressing.EndpointReference;
 import org.apache.axis2.context.MessageContext;
@@ -23,7 +36,6 @@ import java.util.Map;
 import static io.netty.handler.codec.http.HttpHeaders.Names.CONNECTION;
 import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_LENGTH;
 import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
-import static io.netty.handler.codec.http.HttpHeaders.Names.TRANSFER_ENCODING;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
@@ -304,18 +316,12 @@ private void writeResponse(ChannelHandlerContext channelHandlerContext, MessageC
     channelHandlerContext.write(defaultHttpResponse);
     while (true){
         HttpContent httpContent = pipe.getContent();
-        if(httpContent instanceof DefaultHttpContent){
-//            ByteBuf byteBuf = ((DefaultHttpContent)httpContent).content();
-//            byte[] bytes = new byte[byteBuf.readableBytes()];
-//            byteBuf.readBytes(bytes);
-//            content.writeBytes(bytes);
-            // content.writeBytes(bytes);
-            channelHandlerContext.write(httpContent);
-        }else if(httpContent instanceof LastHttpContent){
+ if(httpContent instanceof LastHttpContent || httpContent instanceof DefaultLastHttpContent){
             //    trailingHeadrs = pipe.getTrailingheaderMap();
             channelHandlerContext.writeAndFlush(httpContent);
             break;
         }
+        channelHandlerContext.write(httpContent);
     }
 
 }

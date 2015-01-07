@@ -83,6 +83,10 @@ public class MultiXMLConfigurationSerializer {
      * @param synapseConfig configuration to be serialized
      */
     public void serialize(SynapseConfiguration synapseConfig) {
+
+
+
+
         if (log.isDebugEnabled()) {
             log.debug("Serializing Synapse configuration to the file system");
         }
