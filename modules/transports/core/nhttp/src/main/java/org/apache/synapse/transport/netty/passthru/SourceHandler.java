@@ -18,32 +18,29 @@ public class SourceHandler extends ChannelInboundHandlerAdapter {
     private SourceConfiguration sourceConfiguration;
     private Bootstrap bootstrap;
     private ChannelFuture channelFuture;
-    private TargetHandler  targetHandler;
+    private TargetHandler targetHandler;
     private Channel channel;
 
     private List<Request> requestList = new ArrayList<Request>();
-    int count=0;
+    int count = 0;
 
 
-
-
-
-    protected SourceHandler(SourceConfiguration sourceConfiguration){
-        this.sourceConfiguration=sourceConfiguration;
+    protected SourceHandler(SourceConfiguration sourceConfiguration) {
+        this.sourceConfiguration = sourceConfiguration;
     }
 
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         final Channel inboundChannel = ctx.channel();
-        targetHandler = new TargetHandler(sourceConfiguration,inboundChannel);
+        targetHandler = new TargetHandler(sourceConfiguration, inboundChannel);
 
         bootstrap = new Bootstrap();
         bootstrap.group(inboundChannel.eventLoop())
-                .channel(ctx.channel().getClass())
-                .handler(new TargetChannelinitializer(targetHandler));
+                   .channel(ctx.channel().getClass())
+                   .handler(new TargetChannelinitializer(targetHandler));
         bootstrap.option(ChannelOption.TCP_NODELAY, true);
-        bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS,15000);
+        bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 15000);
 //        b.option(ChannelOption.SO_SNDBUF, 1024*5);
 //        b.option(ChannelOption.SO_RCVBUF, 1024*50);
         bootstrap.option(ChannelOption.SO_SNDBUF, 1048576);
@@ -82,46 +79,46 @@ public class SourceHandler extends ChannelInboundHandlerAdapter {
 //        }
 
 
-
-        Request sourceRequest=null;
-           if(msg instanceof HttpRequest){
-               sourceRequest = new Request();
-               HttpRequest defaultHttpRequest = (HttpRequest) msg;
-               HttpHeaders headers = defaultHttpRequest.headers();
-               for (String val : headers.names()) {
-                   sourceRequest.addHttpheaders(val, headers.get(val));
-               }
-               sourceRequest.setTo(defaultHttpRequest.getUri());
-               sourceRequest.setHttpMethod(defaultHttpRequest.getMethod());
-               sourceRequest.setHttpVersion(defaultHttpRequest.getProtocolVersion());
-               sourceRequest.setUri(defaultHttpRequest.getUri());
-               sourceRequest.setInboundChannelHandlerContext(ctx);
-               sourceRequest.setBootstrap(bootstrap);
-               sourceRequest.setPipe(new Pipe("sourcePipe"));
-               requestList.add(sourceRequest);
-               sourceConfiguration.getWorkerPool().execute(new RequestWorker(targetHandler,sourceRequest,this,sourceConfiguration));
-           }else if(msg instanceof HttpContent){
-               if(requestList.get(0) != null){
-                   if(msg instanceof LastHttpContent){
-                       LastHttpContent defaultLastHttpContent = (LastHttpContent)msg;
-                       HttpHeaders trailingHeaders = defaultLastHttpContent.trailingHeaders();
-                       for (String val : trailingHeaders.names()) {
-                           requestList.get(0).getPipe().addTrailingHeader(val,trailingHeaders.get(val));
-                       }
-                       requestList.get(0).getPipe().addContent(defaultLastHttpContent);
-                       requestList.remove(0);
-                   }else{
-                       HttpContent defaultHttpContent = (HttpContent)msg;
-                       // requestList.get(0).getPipe().writeContent(defaultHttpContent);
-                       requestList.get(0).getPipe().addContent(defaultHttpContent);
-                   }
-               }else{
-                   logger.error("Cannot correlate source request with content");
-               }
-           }
+        Request sourceRequest = null;
+        if (msg instanceof HttpRequest) {
+            sourceRequest = new Request();
+            HttpRequest defaultHttpRequest = (HttpRequest) msg;
+            HttpHeaders headers = defaultHttpRequest.headers();
+            for (String val : headers.names()) {
+                sourceRequest.addHttpheaders(val, headers.get(val));
+            }
+            sourceRequest.setTo(defaultHttpRequest.getUri());
+            sourceRequest.setHttpMethod(defaultHttpRequest.getMethod());
+            sourceRequest.setHttpVersion(defaultHttpRequest.getProtocolVersion());
+            sourceRequest.setUri(defaultHttpRequest.getUri());
+            sourceRequest.setInboundChannelHandlerContext(ctx);
+            sourceRequest.setBootstrap(bootstrap);
+            sourceRequest.setPipe(new Pipe("sourcePipe"));
+            requestList.add(sourceRequest);
+            sourceConfiguration.getWorkerPool().execute(new RequestWorker(targetHandler, sourceRequest, this, sourceConfiguration));
+        } else if (msg instanceof HttpContent) {
+            if (requestList.get(0) != null) {
+                if (msg instanceof LastHttpContent) {
+                    LastHttpContent defaultLastHttpContent = (LastHttpContent) msg;
+                    HttpHeaders trailingHeaders = defaultLastHttpContent.trailingHeaders();
+                    for (String val : trailingHeaders.names()) {
+                        requestList.get(0).getPipe().addTrailingHeader(val, trailingHeaders.get(val));
+                    }
+                    requestList.get(0).getPipe().addContent(defaultLastHttpContent);
+                    requestList.remove(0);
+                } else {
+                    HttpContent defaultHttpContent = (HttpContent) msg;
+                    // requestList.get(0).getPipe().writeContent(defaultHttpContent);
+                    requestList.get(0).getPipe().addContent(defaultHttpContent);
+                }
+            } else {
+                logger.error("Cannot correlate source request with content");
+            }
+        }
 
 
     }
+
     public Bootstrap getBootstrap() {
         return bootstrap;
     }

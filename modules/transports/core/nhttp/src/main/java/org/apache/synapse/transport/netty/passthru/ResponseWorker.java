@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-public class ResponseWorker implements Runnable{
+public class ResponseWorker implements Runnable {
     private Response sourceRes;
     private SourceHandler sourceHandler;
     private SourceConfiguration sourceConfiguration;
@@ -37,20 +37,21 @@ public class ResponseWorker implements Runnable{
     private boolean expectEntityBody = true;
     private static Logger log = Logger.getLogger(ResponseWorker.class);
 
-    public ResponseWorker(MessageContext messageContext,Response sourceResponse,SourceConfiguration sourceConfiguration){
-        this.sourceRes=sourceResponse;
-        this.sourceConfiguration=sourceConfiguration;
+    public ResponseWorker(MessageContext messageContext, Response sourceResponse,
+                          SourceConfiguration sourceConfiguration) {
+        this.sourceRes = sourceResponse;
+        this.sourceConfiguration = sourceConfiguration;
         this.outmessageContext = messageContext;
 
-        Map<String,String> headers = sourceResponse.getHttpheaders();
+        Map<String, String> headers = sourceResponse.getHttpheaders();
         Map excessHeaders = sourceResponse.getHttptrailingHeaders();
 
         String oriURL = headers.get(PassThroughConstants.LOCATION);
         if (oriURL != null && ((sourceRes.getStatus() != HttpStatus.SC_MOVED_TEMPORARILY) &&
-                (sourceRes.getStatus() != HttpStatus.SC_MOVED_PERMANENTLY) &&
-                (sourceRes.getStatus() != HttpStatus.SC_CREATED) &&
-                (sourceRes.getStatus() != HttpStatus.SC_SEE_OTHER) &&
-                (sourceRes.getStatus() != HttpStatus.SC_TEMPORARY_REDIRECT) )) {
+                               (sourceRes.getStatus() != HttpStatus.SC_MOVED_PERMANENTLY) &&
+                               (sourceRes.getStatus() != HttpStatus.SC_CREATED) &&
+                               (sourceRes.getStatus() != HttpStatus.SC_SEE_OTHER) &&
+                               (sourceRes.getStatus() != HttpStatus.SC_TEMPORARY_REDIRECT))) {
             URL url;
             try {
                 url = new URL(oriURL);
@@ -68,10 +69,9 @@ public class ResponseWorker implements Runnable{
         }
 
 
-
         try {
             responseMsgCtx = outmessageContext.getOperationContext().
-                    getMessageContext(WSDL2Constants.MESSAGE_LABEL_IN);
+                       getMessageContext(WSDL2Constants.MESSAGE_LABEL_IN);
             // fix for RM to work because of a soapAction and wsaAction conflict
             if (responseMsgCtx != null) {
                 responseMsgCtx.setSoapAction("");
@@ -85,7 +85,7 @@ public class ResponseWorker implements Runnable{
             if (outmessageContext.getOperationContext().isComplete()) {
                 if (log.isDebugEnabled()) {
                     log.debug("Error getting IN message context from the operation context. " +
-                            "Possibly an RM terminate sequence message");
+                              "Possibly an RM terminate sequence message");
                 }
                 return;
 
@@ -93,13 +93,13 @@ public class ResponseWorker implements Runnable{
             responseMsgCtx = new MessageContext();
             responseMsgCtx.setOperationContext(outmessageContext.getOperationContext());
         }
-        responseMsgCtx.setProperty("PRE_LOCATION_HEADER",oriURL);
+        responseMsgCtx.setProperty("PRE_LOCATION_HEADER", oriURL);
 
 
         responseMsgCtx.setServerSide(true);
         responseMsgCtx.setDoingREST(outmessageContext.isDoingREST());
         responseMsgCtx.setProperty(MessageContext.TRANSPORT_IN, outmessageContext
-                .getProperty(MessageContext.TRANSPORT_IN));
+                   .getProperty(MessageContext.TRANSPORT_IN));
         responseMsgCtx.setTransportIn(outmessageContext.getTransportIn());
         responseMsgCtx.setTransportOut(outmessageContext.getTransportOut());
 
@@ -122,20 +122,20 @@ public class ResponseWorker implements Runnable{
 
         if (sourceResponse.getStatus() == 202) {
             responseMsgCtx.setProperty(AddressingConstants.
-                    DISABLE_ADDRESSING_FOR_OUT_MESSAGES, Boolean.TRUE);
+                                                  DISABLE_ADDRESSING_FOR_OUT_MESSAGES, Boolean.TRUE);
             responseMsgCtx.setProperty(PassThroughConstants.MESSAGE_BUILDER_INVOKED, Boolean.FALSE);
             responseMsgCtx.setProperty(NhttpConstants.SC_ACCEPTED, Boolean.TRUE);
         }
 
         responseMsgCtx.setAxisMessage(outmessageContext.getOperationContext().getAxisOperation().
-                getMessage(WSDLConstants.MESSAGE_LABEL_IN_VALUE));
+                   getMessage(WSDLConstants.MESSAGE_LABEL_IN_VALUE));
         responseMsgCtx.setOperationContext(outmessageContext.getOperationContext());
         responseMsgCtx.setConfigurationContext(outmessageContext.getConfigurationContext());
         responseMsgCtx.setTo(null);
 
-        responseMsgCtx.setProperty(Constants.CONTENT_RES_BUFFER,sourceResponse.getContentBytes());
+        responseMsgCtx.setProperty(Constants.CONTENT_RES_BUFFER, sourceResponse.getContentBytes());
 
-        responseMsgCtx.setProperty(Constants.CHANNEL_HANDLER_CONTEXT,outmessageContext.getProperty(Constants.CHANNEL_HANDLER_CONTEXT));
+        responseMsgCtx.setProperty(Constants.CHANNEL_HANDLER_CONTEXT, outmessageContext.getProperty(Constants.CHANNEL_HANDLER_CONTEXT));
 
     }
 
@@ -146,15 +146,15 @@ public class ResponseWorker implements Runnable{
         }
 
         try {
-          if(outmessageContext.getProperty(Constants.REQUEST)!=null){
-              SourceRequest request = (SourceRequest) outmessageContext.getProperty(Constants.REQUEST);
-            expectEntityBody =  isResponseHaveBodyExpected(request.getMethod(),sourceRes.getStatus());
-          }
+            if (outmessageContext.getProperty(Constants.REQUEST) != null) {
+                SourceRequest request = (SourceRequest) outmessageContext.getProperty(Constants.REQUEST);
+                expectEntityBody = isResponseHaveBodyExpected(request.getMethod(), sourceRes.getStatus());
+            }
 
             if (expectEntityBody) {
                 String cType = sourceRes.getHeader(HTTP.CONTENT_TYPE);
-                if(cType == null){
-                    cType =  sourceRes.getHeader(HTTP.CONTENT_TYPE.toLowerCase());
+                if (cType == null) {
+                    cType = sourceRes.getHeader(HTTP.CONTENT_TYPE.toLowerCase());
                 }
                 String contentType;
                 if (cType != null) {
@@ -173,9 +173,9 @@ public class ResponseWorker implements Runnable{
                 }
                 if (contentType != null) {
                     responseMsgCtx.setProperty(
-                            org.apache.axis2.Constants.Configuration.CHARACTER_SET_ENCODING,
-                            contentType.indexOf("charset") > 0 ?
-                                    charSetEnc : MessageContext.DEFAULT_CHAR_SET_ENCODING);
+                               org.apache.axis2.Constants.Configuration.CHARACTER_SET_ENCODING,
+                               contentType.indexOf("charset") > 0 ?
+                               charSetEnc : MessageContext.DEFAULT_CHAR_SET_ENCODING);
                 }
 
                 responseMsgCtx.setServerSide(false);
@@ -201,13 +201,13 @@ public class ResponseWorker implements Runnable{
             responseMsgCtx.setProperty(PassThroughConstants.HTTP_SC_DESC, sourceRes.getStatusLine());
             if (statusCode >= 400) {
                 responseMsgCtx.setProperty(PassThroughConstants.FAULT_MESSAGE,
-                        PassThroughConstants.TRUE);
+                                           PassThroughConstants.TRUE);
             } /*else if (statusCode == 202 && responseMsgCtx.getOperationContext().isComplete()) {
                 // Handle out-only invocation scenario
                 responseMsgCtx.setProperty(PassThroughConstants.MESSAGE_BUILDER_INVOKED, Boolean.TRUE);
             }*/
             responseMsgCtx.setProperty(PassThroughConstants.NON_BLOCKING_TRANSPORT, true);
-            responseMsgCtx.setProperty(org.apache.synapse.transport.netty.passthru.Constants.PIPE,sourceRes.getPipe());
+            responseMsgCtx.setProperty(org.apache.synapse.transport.netty.passthru.Constants.PIPE, sourceRes.getPipe());
             // process response received
             try {
                 AxisEngine.receive(responseMsgCtx);
@@ -221,7 +221,7 @@ public class ResponseWorker implements Runnable{
     }
 
     private boolean isResponseHaveBodyExpected(
-            final String method, int status) {
+               final String method, int status) {
 
         if ("HEAD".equalsIgnoreCase(method)) {
             return false;
@@ -229,9 +229,9 @@ public class ResponseWorker implements Runnable{
 
 
         return status >= HttpStatus.SC_OK
-                && status != HttpStatus.SC_NO_CONTENT
-                && status != HttpStatus.SC_NOT_MODIFIED
-                && status != HttpStatus.SC_RESET_CONTENT;
+               && status != HttpStatus.SC_NO_CONTENT
+               && status != HttpStatus.SC_NOT_MODIFIED
+               && status != HttpStatus.SC_RESET_CONTENT;
     }
 
     private String inferContentType() {
@@ -258,7 +258,7 @@ public class ResponseWorker implements Runnable{
         }
         // Try to get the content type from the axis configuration
         Parameter cTypeParam = outmessageContext.getConfigurationContext().getAxisConfiguration().getParameter(
-                PassThroughConstants.CONTENT_TYPE);
+                   PassThroughConstants.CONTENT_TYPE);
         if (cTypeParam != null) {
             return cTypeParam.getValue().toString();
         }
@@ -267,7 +267,7 @@ public class ResponseWorker implements Runnable{
         // and Content-Type is not set; ESB should not do any modification to the response and pass-through as it is.
 
         if (headers != null && headers.get(PassThroughConstants.HTTP_CONTENT_LENGTH).toString().equals("0") &&
-                sourceRes.getHeader(PassThroughConstants.HTTP_CONTENT_TYPE) == null) {
+            sourceRes.getHeader(PassThroughConstants.HTTP_CONTENT_TYPE) == null) {
             if (log.isDebugEnabled()) {
                 log.debug("Content-Length is Zero and Content-type is not available in the response ");
             }

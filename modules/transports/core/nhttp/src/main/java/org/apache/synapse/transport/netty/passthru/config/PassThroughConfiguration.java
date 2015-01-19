@@ -35,18 +35,18 @@ public class PassThroughConfiguration {
     /**
      * Default tuning parameter values
      */
-    private static final int DEFAULT_WORKER_POOL_SIZE_CORE       = 40;
-    private static final int DEFAULT_WORKER_POOL_SIZE_MAX        = 200;
+    private static final int DEFAULT_WORKER_POOL_SIZE_CORE = 40;
+    private static final int DEFAULT_WORKER_POOL_SIZE_MAX = 200;
     private static final int DEFAULT_WORKER_THREAD_KEEPALIVE_SEC = 60;
-    private static final int DEFAULT_WORKER_POOL_QUEUE_LENGTH    = -1;
-    private static final int DEFAULT_IO_BUFFER_SIZE              = 8 * 1024;
-    private static final int DEFAULT_IO_THREADS_PER_REACTOR      =
-                                                         Runtime.getRuntime().availableProcessors();
+    private static final int DEFAULT_WORKER_POOL_QUEUE_LENGTH = -1;
+    private static final int DEFAULT_IO_BUFFER_SIZE = 8 * 1024;
+    private static final int DEFAULT_IO_THREADS_PER_REACTOR =
+               Runtime.getRuntime().availableProcessors();
     private static final int DEFAULT_MAX_ACTIVE_CON = -1;
     private static final int DEFAULT_LISTENER_SHUTDOWN_WAIT_TIME = 0;
 
     //additional rest dispatch handlers
-    private static final String REST_DISPATCHER_SERVICE="rest.dispatcher.service";
+    private static final String REST_DISPATCHER_SERVICE = "rest.dispatcher.service";
     // URI configurations that determine if it requires custom rest dispatcher
     private static final String REST_URI_API_REGEX = "rest_uri_api_regex";
     private static final String REST_URI_PROXY_REGEX = "rest_uri_proxy_regex";
@@ -60,7 +60,8 @@ public class PassThroughConfiguration {
     private PassThroughConfiguration() {
         try {
             props = loadProperties("passthru-http.properties");
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
     }
 
     public static PassThroughConfiguration getInstance() {
@@ -69,32 +70,32 @@ public class PassThroughConfiguration {
 
     public int getWorkerPoolCoreSize() {
         return getIntProperty(PassThroughConfigPNames.WORKER_POOL_SIZE_CORE,
-                DEFAULT_WORKER_POOL_SIZE_CORE);
+                              DEFAULT_WORKER_POOL_SIZE_CORE);
     }
 
     public int getWorkerPoolMaxSize() {
         return getIntProperty(PassThroughConfigPNames.WORKER_POOL_SIZE_MAX,
-                DEFAULT_WORKER_POOL_SIZE_MAX);
+                              DEFAULT_WORKER_POOL_SIZE_MAX);
     }
 
     public int getWorkerThreadKeepaliveSec() {
         return getIntProperty(PassThroughConfigPNames.WORKER_THREAD_KEEP_ALIVE_SEC,
-                DEFAULT_WORKER_THREAD_KEEPALIVE_SEC);
+                              DEFAULT_WORKER_THREAD_KEEPALIVE_SEC);
     }
 
     public int getWorkerPoolQueueLen() {
         return getIntProperty(PassThroughConfigPNames.WORKER_POOL_QUEUE_LENGTH,
-                DEFAULT_WORKER_POOL_QUEUE_LENGTH);
+                              DEFAULT_WORKER_POOL_QUEUE_LENGTH);
     }
 
     public int getIOThreadsPerReactor() {
         return getIntProperty(PassThroughConfigPNames.IO_THREADS_PER_REACTOR,
-                DEFAULT_IO_THREADS_PER_REACTOR);
+                              DEFAULT_IO_THREADS_PER_REACTOR);
     }
 
     public int getIOBufferSize() {
         return getIntProperty(PassThroughConfigPNames.IO_BUFFER_SIZE,
-                DEFAULT_IO_BUFFER_SIZE);
+                              DEFAULT_IO_BUFFER_SIZE);
     }
 
     public boolean isKeepAliveDisabled() {
@@ -104,9 +105,10 @@ public class PassThroughConfiguration {
     public int getMaxActiveConnections() {
         return getIntProperty(PassThroughConfigPNames.C_MAX_ACTIVE, DEFAULT_MAX_ACTIVE_CON);
     }
+
     public int getListenerShutdownWaitTime() {
         return getIntProperty(PassThroughConfigPNames.TRANSPORT_LISTENER_SHUTDOWN_WAIT_TIME_SEC,
-                DEFAULT_LISTENER_SHUTDOWN_WAIT_TIME)*1000;
+                              DEFAULT_LISTENER_SHUTDOWN_WAIT_TIME) * 1000;
     }
 
     public boolean isPreserveUserAgentHeader() {
@@ -125,54 +127,54 @@ public class PassThroughConfiguration {
      */
     private static Properties loadProperties(String filePath) {
 
-    	 Properties properties = new Properties();
-         ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        Properties properties = new Properties();
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
 
-         if (log.isDebugEnabled()) {
-             log.debug("Loading the file '" + filePath + "' from classpath");
-         }
-         
-         InputStream in  = null;
-         
-         //if we reach to this assume that the we may have to looking to the customer provided external location for the 
-         //given properties
- 		if (System.getProperty(Constants.CONF_LOCATION) != null) {
- 			try {
- 				in = new FileInputStream(System.getProperty(Constants.CONF_LOCATION) + File.separator + filePath);
- 			} catch (FileNotFoundException e) {
- 				String msg = "Error loading properties from a file at from the System defined location: " + filePath;
- 				log.warn(msg);
- 			}
- 		}
+        if (log.isDebugEnabled()) {
+            log.debug("Loading the file '" + filePath + "' from classpath");
+        }
+
+        InputStream in = null;
+
+        //if we reach to this assume that the we may have to looking to the customer provided external location for the
+        //given properties
+        if (System.getProperty(Constants.CONF_LOCATION) != null) {
+            try {
+                in = new FileInputStream(System.getProperty(Constants.CONF_LOCATION) + File.separator + filePath);
+            } catch (FileNotFoundException e) {
+                String msg = "Error loading properties from a file at from the System defined location: " + filePath;
+                log.warn(msg);
+            }
+        }
 
 
-         if (in == null) {
-         	in = cl.getResourceAsStream(filePath);
-             if (log.isDebugEnabled()) {
-                 log.debug("Unable to load file  '" + filePath + "'");
-             }
+        if (in == null) {
+            in = cl.getResourceAsStream(filePath);
+            if (log.isDebugEnabled()) {
+                log.debug("Unable to load file  '" + filePath + "'");
+            }
 
-             filePath = "conf" + File.separatorChar + filePath;
-             if (log.isDebugEnabled()) {
-                 log.debug("Loading the file '" + filePath + "'");
-             }
+            filePath = "conf" + File.separatorChar + filePath;
+            if (log.isDebugEnabled()) {
+                log.debug("Loading the file '" + filePath + "'");
+            }
 
-             in = cl.getResourceAsStream(filePath);
-             if (in == null) {
-                 if (log.isDebugEnabled()) {
-                     log.debug("Unable to load file  '" + filePath + "'");
-                 }
-             }
-         }
-         if (in != null) {
-             try {
-                 properties.load(in);
-             } catch (IOException e) {
-                 String msg = "Error loading properties from a file at : " + filePath;
-                 log.error(msg, e);
-             }
-         }
-         return properties;
+            in = cl.getResourceAsStream(filePath);
+            if (in == null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Unable to load file  '" + filePath + "'");
+                }
+            }
+        }
+        if (in != null) {
+            try {
+                properties.load(in);
+            } catch (IOException e) {
+                String msg = "Error loading properties from a file at : " + filePath;
+                log.error(msg, e);
+            }
+        }
+        return properties;
     }
 
     /**
@@ -194,7 +196,7 @@ public class PassThroughConfiguration {
                 intVal = Integer.valueOf(val);
             } catch (NumberFormatException e) {
                 log.warn("Invalid pass-through http tuning property value. " + name +
-                        " must be an integer");
+                         " must be an integer");
                 return def;
             }
             if (log.isDebugEnabled()) {
@@ -267,7 +269,7 @@ public class PassThroughConfiguration {
 
 
     public String getRESTDispatchService() {
-        return getStringProperty(REST_DISPATCHER_SERVICE,"");
+        return getStringProperty(REST_DISPATCHER_SERVICE, "");
     }
 
     public String getRestUriApiRegex() {

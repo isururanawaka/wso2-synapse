@@ -48,27 +48,31 @@ public class SourceConfiguration extends BaseConfiguration {
 //    /** Response factory used for creating HTTP Responses */
 //    private HttpResponseFactory responseFactory = null;
 
-    /** port of the listener */
+    /**
+     * port of the listener
+     */
     private int port = 8281;
-
 
 
     private TransportInDescription inDescription;
     private Scheme scheme;
     private String host;
 
-    /** The EPR prefix for services available over this transport */
+    /**
+     * The EPR prefix for services available over this transport
+     */
     private String serviceEPRPrefix;
-    /** The EPR prefix for services with custom URI available over this transport */
+    /**
+     * The EPR prefix for services with custom URI available over this transport
+     */
     private String customEPRPrefix;
-    
 
 
     public SourceConfiguration(ConfigurationContext configurationContext,
                                TransportInDescription description,
                                Scheme scheme,
                                WorkerPool pool
-                             ) {
+    ) {
         super(configurationContext, description, pool);
         this.inDescription = description;
         this.scheme = scheme;
@@ -98,9 +102,9 @@ public class SourceConfiguration extends BaseConfiguration {
         } else {
             serviceEPRPrefix = getServiceEPRPrefix(configurationContext, host, port);
             customEPRPrefix = scheme.getName() + "://" + host + ":" +
-                    (port == scheme.getDefaultPort() ? "" : port) + "/";
+                              (port == scheme.getDefaultPort() ? "" : port) + "/";
         }
-        
+
         // create http Get processor
 //        param = inDescription.getParameter(NhttpConstants.HTTP_GET_PROCESSOR);
 //        if (param != null && param.getValue() != null) {
@@ -112,8 +116,6 @@ public class SourceConfiguration extends BaseConfiguration {
     }
 
 
-
-
     public String getHostname() {
         return host;
     }
@@ -121,7 +123,6 @@ public class SourceConfiguration extends BaseConfiguration {
     public int getPort() {
         return port;
     }
-
 
 
     public TransportInDescription getInDescription() {
@@ -139,42 +140,43 @@ public class SourceConfiguration extends BaseConfiguration {
     public String getCustomEPRPrefix() {
         return customEPRPrefix;
     }
-    
+
 //	public HttpGetRequestProcessor getHttpGetRequestProcessor() {
 //		return httpGetRequestProcessor;
 //	}
 
-	/**
+    /**
      * Return the EPR prefix for services made available over this transport
-     * @param cfgCtx configuration context to retrieve the service context path
-     * @param wsdlEPRPrefix specified wsdlPrefix
      *
+     * @param cfgCtx        configuration context to retrieve the service context path
+     * @param wsdlEPRPrefix specified wsdlPrefix
      * @return wsdlEPRPrefix for the listener
      */
     protected String getServiceEPRPrefix(ConfigurationContext cfgCtx, String wsdlEPRPrefix) {
         return wsdlEPRPrefix +
-            (!cfgCtx.getServiceContextPath().startsWith("/") ? "/" : "") +
-            cfgCtx.getServiceContextPath() +
-            (!cfgCtx.getServiceContextPath().endsWith("/") ? "/" : "");
+               (!cfgCtx.getServiceContextPath().startsWith("/") ? "/" : "") +
+               cfgCtx.getServiceContextPath() +
+               (!cfgCtx.getServiceContextPath().endsWith("/") ? "/" : "");
     }
 
     /**
      * Return the EPR prefix for services made available over this transport
+     *
      * @param cfgCtx configuration context to retrieve the service context path
-     * @param host name of the host
-     * @param port listening port
+     * @param host   name of the host
+     * @param port   listening port
      * @return wsdlEPRPrefix for the listener
      */
-	protected String getServiceEPRPrefix(ConfigurationContext cfgCtx,
-			String host, int port) {
+    protected String getServiceEPRPrefix(ConfigurationContext cfgCtx,
+                                         String host, int port) {
         return scheme.getName() + "://"
-            + host
-            + (port == scheme.getDefaultPort() ? "" : ":" + port)
-            + (!cfgCtx.getServiceContextPath().startsWith("/") ? "/" : "")
-            + cfgCtx.getServiceContextPath()
-            + (!cfgCtx.getServiceContextPath().endsWith("/") ? "/" : "");
-	}
-    
+               + host
+               + (port == scheme.getDefaultPort() ? "" : ":" + port)
+               + (!cfgCtx.getServiceContextPath().startsWith("/") ? "/" : "")
+               + cfgCtx.getServiceContextPath()
+               + (!cfgCtx.getServiceContextPath().endsWith("/") ? "/" : "");
+    }
+
     private HttpGetRequestProcessor createHttpGetProcessor(String str) throws AxisFault {
         Object obj = null;
         try {
@@ -191,37 +193,37 @@ public class SourceConfiguration extends BaseConfiguration {
             return (HttpGetRequestProcessor) obj;
         } else {
             handleException("Error creating WSDL processor. The HttpProcessor should be of type " +
-                    "org.apache.synapse.transport.nhttp.HttpGetRequestProcessor");
+                            "org.apache.synapse.transport.nhttp.HttpGetRequestProcessor");
         }
 
         return null;
     }
-    
+
     private void handleException(String msg, Exception e) throws AxisFault {
         log.error(msg, e);
         throw new AxisFault(msg, e);
     }
-    
+
     private void handleException(String msg) throws AxisFault {
         log.error(msg);
         throw new AxisFault(msg);
     }
 
-    public int getBossGroupsize(){
+    public int getBossGroupsize() {
         Properties properties = MiscellaneousUtil.loadProperties("nettytransport.properties");
         String bossgroup = properties.getProperty("netty.transport.serverbootstrap.bossgroup", "1");
-       return Integer.parseInt(bossgroup);
+        return Integer.parseInt(bossgroup);
     }
 
-    public int getWorkerGroupsize(){
+    public int getWorkerGroupsize() {
         Properties properties = MiscellaneousUtil.loadProperties("nettytransport.properties");
         String workergroup = properties.getProperty("netty.transport.serverbootstrap.workergroup", "1");
-        return  Integer.parseInt(workergroup);
+        return Integer.parseInt(workergroup);
     }
 
-    public int getBackLog(){
+    public int getBackLog() {
         Properties properties = MiscellaneousUtil.loadProperties("nettytransport.properties");
         String backlog = properties.getProperty("netty.transport.serverbootstrap.backlog", "10000");
-        return  Integer.parseInt(backlog);
+        return Integer.parseInt(backlog);
     }
 }

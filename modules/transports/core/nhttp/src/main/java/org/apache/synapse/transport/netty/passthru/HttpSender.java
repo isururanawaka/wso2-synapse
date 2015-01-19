@@ -23,17 +23,17 @@ public class HttpSender extends AbstractHandler implements TransportSender {
     public InvocationResponse invoke(MessageContext messageContext) throws AxisFault {
 
         if (AddressingHelper.isReplyRedirected(messageContext)
-                && !messageContext.getReplyTo().hasNoneAddress()) {
+            && !messageContext.getReplyTo().hasNoneAddress()) {
             messageContext.setProperty(PassThroughConstants.IGNORE_SC_ACCEPTED, Constants.VALUE_TRUE);
         }
 
         EndpointReference epr = PassThroughTransportUtils.getDestinationEPR(messageContext);
         if (epr != null) {
-            if (!epr.hasNoneAddress() && messageContext.getProperty(Constants.OUT_TRANSPORT_INFO) !=null) {
-               RequestWorker requestWorker = (RequestWorker) messageContext.getProperty(Constants.OUT_TRANSPORT_INFO);
+            if (!epr.hasNoneAddress() && messageContext.getProperty(Constants.OUT_TRANSPORT_INFO) != null) {
+                RequestWorker requestWorker = (RequestWorker) messageContext.getProperty(Constants.OUT_TRANSPORT_INFO);
                 deliveryAgent.submitRequest(messageContext, epr, requestWorker);
             } else {
-              //  handleException("Cannot send message to " + AddressingConstants.Final.WSA_NONE_URI);
+                //  handleException("Cannot send message to " + AddressingConstants.Final.WSA_NONE_URI);
                 log.error("Cannot send message");
             }
         } else {
@@ -42,24 +42,24 @@ public class HttpSender extends AbstractHandler implements TransportSender {
                     try {
                         deliveryAgent.submitResponse(messageContext);
                     } catch (Exception e) {
-                       // handleException("Failed to submit the response", e);
+                        // handleException("Failed to submit the response", e);
                         log.error("Failed to submit the response");
                     }
-                }else {
+                } else {
                     //handleException("No valid destination EPR to send message");
                     //should be able to handle sendUsingOutputStream  Ref NHTTP_NIO
-                 //   sendUsingOutputStream(messageContext);
+                    //   sendUsingOutputStream(messageContext);
                     log.error("No valid destination EPR to send message");
                 }
             } else {
-               // handleException("No valid destination EPR to send message");
+                // handleException("No valid destination EPR to send message");
                 log.error("No valid destination EPR to send message");
             }
         }
 
         if (messageContext.getOperationContext() != null) {
             messageContext.getOperationContext().setProperty(
-                    Constants.RESPONSE_WRITTEN, Constants.VALUE_TRUE);
+                       Constants.RESPONSE_WRITTEN, Constants.VALUE_TRUE);
         }
 
         return InvocationResponse.CONTINUE;
@@ -69,8 +69,9 @@ public class HttpSender extends AbstractHandler implements TransportSender {
 
     }
 
-    public void init(ConfigurationContext configurationContext, TransportOutDescription transportOutDescription) throws AxisFault {
-         deliveryAgent = new DiliveryAgent();
+    public void init(ConfigurationContext configurationContext, TransportOutDescription transportOutDescription)
+               throws AxisFault {
+        deliveryAgent = new DiliveryAgent();
 
     }
 

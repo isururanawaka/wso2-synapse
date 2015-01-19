@@ -5,7 +5,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.DefaultHttpContent;
-import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponse;
@@ -20,18 +19,18 @@ import java.util.List;
 public class TargetHandler extends ChannelInboundHandlerAdapter {
 
     private static Logger logger = Logger.getLogger(SourceHandler.class);
-private Channel inboundChannel;
-private SourceConfiguration sourceConfiguration;
-private MessageContext messageContext;
+    private Channel inboundChannel;
+    private SourceConfiguration sourceConfiguration;
+    private MessageContext messageContext;
 
     private List<Response> responseList = new ArrayList<Response>();
 
-    int count=0;
+    int count = 0;
 
-public TargetHandler(SourceConfiguration sourceConfiguration, Channel inboundChannel){
-    this.inboundChannel = inboundChannel;
-    this.sourceConfiguration=sourceConfiguration;
-}
+    public TargetHandler(SourceConfiguration sourceConfiguration, Channel inboundChannel) {
+        this.inboundChannel = inboundChannel;
+        this.sourceConfiguration = sourceConfiguration;
+    }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -60,7 +59,7 @@ public TargetHandler(SourceConfiguration sourceConfiguration, Channel inboundCha
 //         response.setStatus(fullHttpResponse.getStatus().code());
 //          response.setStatusLine(fullHttpResponse.getStatus().toString());
 //      }
-        if(msg instanceof HttpResponse){
+        if (msg instanceof HttpResponse) {
             Response response = new Response();
             HttpResponse defaultHttpResponse = (HttpResponse) msg;
             HttpHeaders headers = defaultHttpResponse.headers();
@@ -71,18 +70,18 @@ public TargetHandler(SourceConfiguration sourceConfiguration, Channel inboundCha
             response.setStatusLine(defaultHttpResponse.getStatus().toString());
             response.setPipe(new Pipe("TargetPipe"));
             responseList.add(response);
-            sourceConfiguration.getWorkerPool().execute(new ResponseWorker(messageContext,response,sourceConfiguration));
-        }else if(msg instanceof HttpContent){
-            if(responseList.get(0) != null){
-                if(msg instanceof LastHttpContent){
-                    LastHttpContent defaultLastHttpContent = (LastHttpContent)msg;
+            sourceConfiguration.getWorkerPool().execute(new ResponseWorker(messageContext, response, sourceConfiguration));
+        } else if (msg instanceof HttpContent) {
+            if (responseList.get(0) != null) {
+                if (msg instanceof LastHttpContent) {
+                    LastHttpContent defaultLastHttpContent = (LastHttpContent) msg;
 //                HttpHeaders trailingHeaders = defaultLastHttpContent.trailingHeaders();
 //                for (String val : trailingHeaders.names()) {
 //                    responseList.get(0).getPipe().addTrailingHeader(val,trailingHeaders.get(val));
 //                }
                     responseList.get(0).getPipe().addContent(defaultLastHttpContent);
                     responseList.remove(0);
-                }else {
+                } else {
                     DefaultHttpContent defaultHttpContent = (DefaultHttpContent) msg;
                     //  responseList.get(0).getPipe().writeContent(defaultHttpContent);
                     responseList.get(0).getPipe().addContent(defaultHttpContent);
@@ -90,7 +89,7 @@ public TargetHandler(SourceConfiguration sourceConfiguration, Channel inboundCha
 
             }
         }
-    //    sourceConfiguration.getWorkerPool().execute(new ResponseWorker(messageContext,response,sourceConfiguration));
+        //    sourceConfiguration.getWorkerPool().execute(new ResponseWorker(messageContext,response,sourceConfiguration));
 
     }
 

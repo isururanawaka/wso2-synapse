@@ -26,33 +26,29 @@ import org.apache.synapse.transport.nhttp.util.NhttpUtil;
 import org.apache.synapse.transport.passthru.PassThroughConstants;
 
 
-
-
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
 
-public class RequestWorker implements Runnable{
+public class RequestWorker implements Runnable {
 
-private Request sourceRequest;
-private SourceHandler sourceHandler;
-private SourceConfiguration sourceConfiguration;
-private MessageContext messageContext;
-private TargetHandler targetHandler;
-private static Logger log = Logger.getLogger(RequestWorker.class);
+    private Request sourceRequest;
+    private SourceHandler sourceHandler;
+    private SourceConfiguration sourceConfiguration;
+    private MessageContext messageContext;
+    private TargetHandler targetHandler;
+    private static Logger log = Logger.getLogger(RequestWorker.class);
 
-    public RequestWorker(TargetHandler targetHandler,Request sourceRequest,SourceHandler sourceHandler,SourceConfiguration sourceConfiguration){
-     this.sourceRequest=sourceRequest;
-     this.sourceHandler=sourceHandler;
-     this.sourceConfiguration=sourceConfiguration;
-     this.messageContext=createMessageContext(sourceRequest);
-     this.targetHandler= targetHandler;
+    public RequestWorker(TargetHandler targetHandler, Request sourceRequest, SourceHandler sourceHandler,
+                         SourceConfiguration sourceConfiguration) {
+        this.sourceRequest = sourceRequest;
+        this.sourceHandler = sourceHandler;
+        this.sourceConfiguration = sourceConfiguration;
+        this.messageContext = createMessageContext(sourceRequest);
+        this.targetHandler = targetHandler;
     }
-
-
-
 
 
     public void run() {
@@ -73,37 +69,38 @@ private static Logger log = Logger.getLogger(RequestWorker.class);
         messageContext.setTo(new EndpointReference(restUrlPostfix));
         messageContext.setProperty(PassThroughConstants.REST_URL_POSTFIX, restUrlPostfix);
 
-        messageContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.SOURCE_HANDLER,sourceHandler);
-        messageContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.PIPE,sourceRequest.getPipe());
-        messageContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.HTTP_VERSION,sourceRequest.getHttpVersion().text());
-        messageContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.REQUEST,sourceRequest.getFullHttpRequest());
+        messageContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.SOURCE_HANDLER, sourceHandler);
+        messageContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.PIPE, sourceRequest.getPipe());
+        messageContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.HTTP_VERSION, sourceRequest.getHttpVersion().text());
+        messageContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.REQUEST, sourceRequest.getFullHttpRequest());
         processEntityEnclosingRequest();
 
-      //  sendAck();
+        //  sendAck();
     }
+
     private MessageContext createMessageContext(Request request) {
-     //   Map excessHeaders = request.getHttptrailingHeaders();
+        //   Map excessHeaders = request.getHttptrailingHeaders();
         ConfigurationContext cfgCtx = sourceConfiguration.getConfigurationContext();
         MessageContext msgContext =
-                new MessageContext();
+                   new MessageContext();
         msgContext.setMessageID(UIDGenerator.generateURNString());
 
         // Axis2 spawns a new threads to send a message if this is TRUE - and it has to
         // be the other way
         msgContext.setProperty(MessageContext.CLIENT_API_NON_BLOCKING,
-                Boolean.FALSE);
+                               Boolean.FALSE);
         msgContext.setConfigurationContext(cfgCtx);
-            msgContext.setTransportOut(cfgCtx.getAxisConfiguration()
-                    .getTransportOut(org.apache.axis2.Constants.TRANSPORT_HTTP));
-            msgContext.setTransportIn(cfgCtx.getAxisConfiguration()
-                    .getTransportIn(org.apache.axis2.Constants.TRANSPORT_HTTP));
-            msgContext.setIncomingTransportName(sourceConfiguration.getInDescription() != null?
-                    sourceConfiguration.getInDescription().getName(): org.apache.axis2.Constants.TRANSPORT_HTTP);
+        msgContext.setTransportOut(cfgCtx.getAxisConfiguration()
+                                              .getTransportOut(org.apache.axis2.Constants.TRANSPORT_HTTP));
+        msgContext.setTransportIn(cfgCtx.getAxisConfiguration()
+                                             .getTransportIn(org.apache.axis2.Constants.TRANSPORT_HTTP));
+        msgContext.setIncomingTransportName(sourceConfiguration.getInDescription() != null ?
+                                            sourceConfiguration.getInDescription().getName() : org.apache.axis2.Constants.TRANSPORT_HTTP);
         msgContext.setProperty(org.apache.axis2.Constants.OUT_TRANSPORT_INFO, this);
         msgContext.setServerSide(true);
         msgContext.setProperty(
-                org.apache.axis2.Constants.Configuration.TRANSPORT_IN_URL, request.getUri());
-        msgContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.REQUEST,sourceRequest);
+                   org.apache.axis2.Constants.Configuration.TRANSPORT_IN_URL, request.getUri());
+        msgContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.REQUEST, sourceRequest);
 
         // http transport header names are case insensitive
         Map<String, String> headers = new TreeMap<String, String>(new Comparator<String>() {
@@ -117,14 +114,15 @@ private static Logger log = Logger.getLogger(RequestWorker.class);
             headers.put(entry.getKey(), entry.getValue());
         }
         msgContext.setProperty(MessageContext.TRANSPORT_HEADERS, headers);
-       // msgContext.setProperty(NhttpConstants.EXCESS_TRANSPORT_HEADERS, excessHeaders);
+        // msgContext.setProperty(NhttpConstants.EXCESS_TRANSPORT_HEADERS, excessHeaders);
         msgContext.setProperty(RequestResponseTransport.TRANSPORT_CONTROL,
-                new HttpCoreRequestResponseTransport(msgContext));
+                               new HttpCoreRequestResponseTransport(msgContext));
 
-        msgContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.CHANNEL_HANDLER_CONTEXT,sourceRequest.getInboundChannelHandlerContext());
+        msgContext.setProperty(org.apache.synapse.transport.netty.passthru.Constants.CHANNEL_HANDLER_CONTEXT, sourceRequest.getInboundChannelHandlerContext());
 
         return msgContext;
     }
+
     private void processEntityEnclosingRequest() {
         try {
             String contentTypeHeader = sourceRequest.getHttpheaders().get(HTTP.CONTENT_TYPE);
@@ -135,15 +133,13 @@ private static Logger log = Logger.getLogger(RequestWorker.class);
 
             if (contentTypeHeader != null) {
                 charSetEncoding = BuilderUtil.getCharSetEncoding(contentTypeHeader);
-                contentType = TransportUtils.getContentType(contentTypeHeader,messageContext);
+                contentType = TransportUtils.getContentType(contentTypeHeader, messageContext);
             }
             // get the contentType of char encoding
             if (charSetEncoding == null) {
                 charSetEncoding = MessageContext.DEFAULT_CHAR_SET_ENCODING;
             }
             String method = sourceRequest.getHttpMethod().toString();
-
-
 
 
             messageContext.setTo(new EndpointReference(sourceRequest.getUri()));
@@ -155,30 +151,31 @@ private static Logger log = Logger.getLogger(RequestWorker.class);
             messageContext.setProperty(Constants.Configuration.MESSAGE_TYPE, contentType);
 
 
-                String soapAction = sourceRequest.getHttpheaders().get(org.apache.synapse.transport.netty.passthru.Constants.SOAP_ACTION_HEADER);
+            String soapAction = sourceRequest.getHttpheaders().get(org.apache.synapse.transport.netty.passthru.Constants.SOAP_ACTION_HEADER);
 
-                int soapVersion = HTTPTransportUtils.
-                        initializeMessageContext(messageContext, soapAction,
-                                sourceRequest.getUri(), contentTypeHeader);
-                SOAPEnvelope envelope;
+            int soapVersion = HTTPTransportUtils.
+                       initializeMessageContext(messageContext, soapAction,
+                                                sourceRequest.getUri(), contentTypeHeader);
+            SOAPEnvelope envelope;
 
-                if (soapVersion == 1) {
-                    SOAPFactory fac = OMAbstractFactory.getSOAP11Factory();
-                    envelope = fac.getDefaultEnvelope();
-                } else if (soapVersion == 2) {
-                    SOAPFactory fac = OMAbstractFactory.getSOAP12Factory();
-                    envelope = fac.getDefaultEnvelope();
-                } else {
-                    SOAPFactory fac = OMAbstractFactory.getSOAP12Factory();
-                    envelope = fac.getDefaultEnvelope();
-                }
+            if (soapVersion == 1) {
+                SOAPFactory fac = OMAbstractFactory.getSOAP11Factory();
+                envelope = fac.getDefaultEnvelope();
+            } else if (soapVersion == 2) {
+                SOAPFactory fac = OMAbstractFactory.getSOAP12Factory();
+                envelope = fac.getDefaultEnvelope();
+            } else {
+                SOAPFactory fac = OMAbstractFactory.getSOAP12Factory();
+                envelope = fac.getDefaultEnvelope();
+            }
 
-                messageContext.setEnvelope(envelope);
+            messageContext.setEnvelope(envelope);
             AxisEngine.receive(messageContext);
         } catch (AxisFault axisFault) {
             log.error(axisFault.getMessage());
         }
     }
+
     private String inferContentType() {
         Map<String, String> headers = sourceRequest.getHttpheaders();
         for (String header : headers.keySet()) {
@@ -187,7 +184,7 @@ private static Logger log = Logger.getLogger(RequestWorker.class);
             }
         }
         Parameter param = sourceConfiguration.getConfigurationContext().getAxisConfiguration().
-                getParameter(PassThroughConstants.REQUEST_CONTENT_TYPE);
+                   getParameter(PassThroughConstants.REQUEST_CONTENT_TYPE);
         if (param != null) {
             return param.getValue().toString();
         }

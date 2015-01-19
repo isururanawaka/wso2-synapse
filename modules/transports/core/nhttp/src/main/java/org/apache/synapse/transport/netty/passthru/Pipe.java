@@ -19,74 +19,72 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Pipe {
 
 
+    private String name = "Buffer";
 
-private String name ="Buffer";
+    private byte[] content;
 
-private byte[] content;
-
- private BlockingQueue<HttpContent> contentQueue = new LinkedBlockingQueue<HttpContent>();
+    private BlockingQueue<HttpContent> contentQueue = new LinkedBlockingQueue<HttpContent>();
 
 
-private Map   trailingheaders = new ConcurrentHashMap<String, String>();
+    private Map trailingheaders = new ConcurrentHashMap<String, String>();
 
-private Lock lock = new ReentrantLock();
+    private Lock lock = new ReentrantLock();
 
     private Condition readCondition = lock.newCondition();
 
-public Pipe(String name){
-    this.name= name;
+    public Pipe(String name) {
+        this.name = name;
 
-}
-
-
-public void writeContent(DefaultHttpContent defaultHttpContent){
-    lock.lock();
-    try{
-        ByteBuf buf = defaultHttpContent.content();
-        content = new byte[buf.readableBytes()];
-        buf.readBytes(content);
-        readCondition.signalAll();
-
-    }finally {
-        lock.unlock();
     }
 
-}
 
-    public void writeFullContent(byte[] bytes){
+    public void writeContent(DefaultHttpContent defaultHttpContent) {
+        lock.lock();
+        try {
+            ByteBuf buf = defaultHttpContent.content();
+            content = new byte[buf.readableBytes()];
+            buf.readBytes(content);
+            readCondition.signalAll();
+
+        } finally {
+            lock.unlock();
+        }
+
+    }
+
+    public void writeFullContent(byte[] bytes) {
         content = bytes;
     }
 
 
-
-public byte[] readContent(){
-    lock.lock();
-    try{
-       waitForData();
+    public byte[] readContent() {
+        lock.lock();
+        try {
+            waitForData();
+            return content;
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
         return content;
-    } catch (IOException e) {
-        e.printStackTrace();
-    } finally{
-        lock.unlock();
     }
-    return content;
-}
 
-public void addTrailingHeader(String key,String value){
-    trailingheaders.put(key,value);
-}
+    public void addTrailingHeader(String key, String value) {
+        trailingheaders.put(key, value);
+    }
 
 
-public Map getTrailingheaderMap(){
-    return trailingheaders;
-}
+    public Map getTrailingheaderMap() {
+        return trailingheaders;
+    }
 
 
     private void waitForData() throws IOException {
         lock.lock();
         try {
             try {
-                while (content==null) {
+                while (content == null) {
                     readCondition.await();
                 }
             } catch (InterruptedException e) {
@@ -97,17 +95,17 @@ public Map getTrailingheaderMap(){
         }
     }
 
-   public HttpContent getContent(){
-       try {
-           return  contentQueue.take();
-       } catch (InterruptedException e) {
-           e.printStackTrace();
-           return null;
-       }
-   }
+    public HttpContent getContent() {
+        try {
+            return contentQueue.take();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
-   public void addContent(HttpContent defaultHttpContent){
-       contentQueue.add(defaultHttpContent);
-   }
+    public void addContent(HttpContent defaultHttpContent) {
+        contentQueue.add(defaultHttpContent);
+    }
 
 }

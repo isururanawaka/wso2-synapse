@@ -43,199 +43,198 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 public class DiliveryAgent {
 
 
+    public void submitRequest(final MessageContext context, EndpointReference endpointReference,
+                              final RequestWorker requestWorker) {
 
-public  void submitRequest(final MessageContext context, EndpointReference endpointReference, final RequestWorker requestWorker){
+        final SourceHandler sourceHandler = (SourceHandler) context.getProperty(Constants.SOURCE_HANDLER);
+        URL url = null;
+        URI uri = null;
 
- final  SourceHandler sourceHandler = (SourceHandler) context.getProperty(Constants.SOURCE_HANDLER);
-    URL url=null;
-    URI uri=null;
+        try {
+            url = new URL(endpointReference.getAddress());
+            uri = url.toURI();
+        } catch (MalformedURLException e) {
 
-    try {
-      url  = new URL(endpointReference.getAddress());
-        uri = url.toURI();
-    } catch (MalformedURLException e) {
+        } catch (URISyntaxException e) {
 
-    } catch (URISyntaxException e) {
+        }
+
+        // final FullHttpRequest fullHttpRequest = createFullHttpRequest(context, uri.toString());
+        final HttpRequest httpRequest = createHttpRequest(context, uri.toString());
+        if (sourceHandler.getChannelFuture() == null) {
+            Bootstrap b = sourceHandler.getBootstrap();
+            ChannelFuture future = b.connect(url.getHost(), url.getPort());
+            final Channel outboundChannel = future.channel();
+
+            future.addListener(new ChannelFutureListener() {
+
+                public void operationComplete(ChannelFuture future) throws Exception {
+                    if (future.isSuccess()) {
+                        // connection complete start to read first data
+                        requestWorker.getTargetHandler().setMessageContext(context);
+
+                        //    outboundChannel.writeAndFlush(fullHttpRequest);
+                        outboundChannel.write(httpRequest);
+                        Object obj = context.getProperty(Constants.PIPE);
+                        Pipe pipe = null;
+                        if (obj != null && obj instanceof Pipe) {
+                            pipe = (Pipe) obj;
+                        }
+                        while (true) {
+                            HttpContent defaultHttpContent = pipe.getContent();
+                            if (defaultHttpContent instanceof LastHttpContent) {
+                                outboundChannel.writeAndFlush(defaultHttpContent);
+                                break;
+                            }
+                            if (defaultHttpContent != null) {
+                                outboundChannel.write(defaultHttpContent);
+                            }
+                        }
+                        sourceHandler.setChannelFuture(future);
+                        sourceHandler.setChannel(outboundChannel);
+                    } else {
+                        // Close the connection if the connection attempt has failed.
+                        outboundChannel.close();
+                    }
+                }
+            });
+
+        } else {
+            ChannelFuture future = sourceHandler.getChannelFuture();
+            if (future.isSuccess() && sourceHandler.getChannel().isActive()) {
+                requestWorker.getTargetHandler().setMessageContext(context);
+
+                //  sourceHandler.getChannel().writeAndFlush(fullHttpRequest);
+                sourceHandler.getChannel().write(httpRequest);
+
+                Object obj = context.getProperty(Constants.PIPE);
+                Pipe pipe = null;
+                if (obj != null && obj instanceof Pipe) {
+                    pipe = (Pipe) obj;
+                }
+                while (true) {
+                    HttpContent defaultHttpContent = pipe.getContent();
+                    if (defaultHttpContent instanceof LastHttpContent) {
+                        sourceHandler.getChannel().writeAndFlush(defaultHttpContent);
+                        break;
+                    }
+                    sourceHandler.getChannel().write(defaultHttpContent);
+                }
+
+            } else {
+                Bootstrap b = sourceHandler.getBootstrap();
+                final ChannelFuture futuretwo = b.connect(url.getHost(), url.getPort());
+                final Channel outboundChannel = futuretwo.channel();
+                futuretwo.addListener(new ChannelFutureListener() {
+
+                    public void operationComplete(ChannelFuture future) throws Exception {
+                        if (futuretwo.isSuccess()) {
+                            // connection complete start to read first data
+                            requestWorker.getTargetHandler().setMessageContext(context);
+
+                            //     outboundChannel.writeAndFlush(fullHttpRequest);
+                            outboundChannel.write(httpRequest);
+
+                            Object obj = context.getProperty(Constants.PIPE);
+                            Pipe pipe = null;
+                            if (obj != null && obj instanceof Pipe) {
+                                pipe = (Pipe) obj;
+                            }
+                            while (true) {
+                                HttpContent defaultHttpContent = pipe.getContent();
+                                if (defaultHttpContent instanceof LastHttpContent) {
+                                    outboundChannel.writeAndFlush(defaultHttpContent);
+                                    break;
+                                }
+                                outboundChannel.write(defaultHttpContent);
+                            }
+                            sourceHandler.setChannelFuture(future);
+
+                        } else {
+                            // Close the connection if the connection attempt has failed.
+                            outboundChannel.close();
+                        }
+                    }
+                });
+            }
+
+            //todo need to handle error connections
+        }
+    }
+
+    public void submitResponse(MessageContext context) {
+        SOAPEnvelope envelope = context.getEnvelope();
+        String contentType = (String) (context.getProperty(Constants.CONTENT_TYPE));
+        ChannelHandlerContext channelHandlerContext = (ChannelHandlerContext) context.getProperty(Constants.CHANNEL_HANDLER_CONTEXT);
+        if (envelope.getBody().getFirstElement() == null) {
+
+            writeResponse(channelHandlerContext, context, contentType);
+            //     channelHandlerContext.writeAndFlush(httpResponse);
+
+        } else {
+            FullHttpResponse fullHttpResponse = getHttpResponse(envelope, contentType);
+            //Send the envelope using the ChannelHandlerContext
+            channelHandlerContext.writeAndFlush(fullHttpResponse);
+        }
+
 
     }
 
- // final FullHttpRequest fullHttpRequest = createFullHttpRequest(context, uri.toString());
-  final HttpRequest httpRequest = createHttpRequest(context,uri.toString());
-   if(sourceHandler.getChannelFuture()==null){
-       Bootstrap b = sourceHandler.getBootstrap();
-       ChannelFuture future = b.connect(url.getHost(), url.getPort());
-       final Channel outboundChannel = future.channel();
+    private FullHttpRequest createFullHttpRequest(MessageContext context, String uri) {
+        Object obj = context.getProperty(Constants.PIPE);
+        Pipe pipe = null;
+        ByteBuf content = null;
+        Map trailingHeadrs = null;
+        if (obj != null && obj instanceof Pipe) {
+            pipe = (Pipe) obj;
+        }
 
-       future.addListener(new ChannelFutureListener() {
+        if (pipe != null) {
 
-                              public void operationComplete(ChannelFuture future) throws Exception {
-                                  if (future.isSuccess()) {
-                                      // connection complete start to read first data
-                                      requestWorker.getTargetHandler().setMessageContext(context);
-
-                                 //    outboundChannel.writeAndFlush(fullHttpRequest);
-                                      outboundChannel.write(httpRequest);
-                                    Object obj =  context.getProperty(Constants.PIPE);
-                                      Pipe pipe =null;
-                                      if(obj != null && obj instanceof Pipe){
-                                          pipe = (Pipe)obj;
-                                      }
-                                      while (true){
-                                          HttpContent defaultHttpContent = pipe.getContent();
-                                          if(defaultHttpContent instanceof LastHttpContent){
-                                              outboundChannel.writeAndFlush(defaultHttpContent);
-                                              break;
-                                          }
-                                          if(defaultHttpContent != null) {
-                                              outboundChannel.write(defaultHttpContent);
-                                          }
-                                      }
-                                     sourceHandler.setChannelFuture(future);
-                                      sourceHandler.setChannel(outboundChannel);
-                                  } else {
-                                      // Close the connection if the connection attempt has failed.
-                                     outboundChannel.close();
-                                  }
-                              }
-                          });
-
-   }else{
-       ChannelFuture future = sourceHandler.getChannelFuture();
-       if(future.isSuccess() && sourceHandler.getChannel().isActive()){
-           requestWorker.getTargetHandler().setMessageContext(context);
-
-     //  sourceHandler.getChannel().writeAndFlush(fullHttpRequest);
-           sourceHandler.getChannel().write(httpRequest);
-
-           Object obj =  context.getProperty(Constants.PIPE);
-           Pipe pipe =null;
-           if(obj != null && obj instanceof Pipe){
-               pipe = (Pipe)obj;
-           }
-           while (true){
-               HttpContent defaultHttpContent = pipe.getContent();
-               if(defaultHttpContent instanceof LastHttpContent){
-                   sourceHandler.getChannel().writeAndFlush(defaultHttpContent);
-                   break;
-               }
-               sourceHandler.getChannel().write(defaultHttpContent);
-           }
-
-       }else{
-           Bootstrap b = sourceHandler.getBootstrap();
-          final  ChannelFuture  futuretwo = b.connect(url.getHost(), url.getPort());
-           final Channel outboundChannel = futuretwo.channel();
-           futuretwo.addListener(new ChannelFutureListener() {
-
-               public void operationComplete(ChannelFuture future) throws Exception {
-                   if (futuretwo.isSuccess()) {
-                       // connection complete start to read first data
-                       requestWorker.getTargetHandler().setMessageContext(context);
-
-              //     outboundChannel.writeAndFlush(fullHttpRequest);
-                       outboundChannel.write(httpRequest);
-
-                       Object obj =  context.getProperty(Constants.PIPE);
-                       Pipe pipe =null;
-                       if(obj != null && obj instanceof Pipe){
-                           pipe = (Pipe)obj;
-                       }
-                       while (true){
-                           HttpContent defaultHttpContent = pipe.getContent();
-                           if(defaultHttpContent instanceof LastHttpContent){
-                               outboundChannel.writeAndFlush(defaultHttpContent);
-                               break;
-                           }
-                           outboundChannel.write(defaultHttpContent);
-                       }
-                       sourceHandler.setChannelFuture(future);
-
-                   } else {
-                       // Close the connection if the connection attempt has failed.
-                       outboundChannel.close();
-                   }
-               }
-           });
-       }
-
-       //todo need to handle error connections
-   }
- }
-
-public  void submitResponse(MessageContext context){
-    SOAPEnvelope envelope = context.getEnvelope();
-    String contentType = (String) (context.getProperty(Constants.CONTENT_TYPE));
-    ChannelHandlerContext channelHandlerContext = (ChannelHandlerContext) context.getProperty(Constants.CHANNEL_HANDLER_CONTEXT);
-    if (envelope.getBody().getFirstElement() == null) {
-
-      writeResponse(channelHandlerContext,context,contentType);
-     //     channelHandlerContext.writeAndFlush(httpResponse);
-
-    }
-    else {
-        FullHttpResponse fullHttpResponse = getHttpResponse(envelope, contentType);
-        //Send the envelope using the ChannelHandlerContext
-        channelHandlerContext.writeAndFlush(fullHttpResponse);
-    }
-
-
-}
-
-private FullHttpRequest createFullHttpRequest(MessageContext context, String uri){
-    Object obj = context.getProperty(Constants.PIPE);
-    Pipe pipe=null;
-    ByteBuf  content=null;
-    Map trailingHeadrs=null;
-    if(obj != null && obj instanceof Pipe){
-         pipe = (Pipe)obj;
-    }
-
-    if(pipe != null){
-
-        content =  null;
-        while (true){
-           HttpContent httpContent = pipe.getContent();
-            if(httpContent instanceof DefaultHttpContent){
-                ByteBuf byteBuf = ((DefaultHttpContent)httpContent).content();
-                byte[] bytes = new byte[byteBuf.readableBytes()];
-                byteBuf.readBytes(bytes);
-                content = Unpooled.unreleasableBuffer(Unpooled.copiedBuffer(bytes));
-               // content.writeBytes(bytes);
-            }else if(httpContent instanceof LastHttpContent){
-                trailingHeadrs = pipe.getTrailingheaderMap();
-                break;
+            content = null;
+            while (true) {
+                HttpContent httpContent = pipe.getContent();
+                if (httpContent instanceof DefaultHttpContent) {
+                    ByteBuf byteBuf = ((DefaultHttpContent) httpContent).content();
+                    byte[] bytes = new byte[byteBuf.readableBytes()];
+                    byteBuf.readBytes(bytes);
+                    content = Unpooled.unreleasableBuffer(Unpooled.copiedBuffer(bytes));
+                    // content.writeBytes(bytes);
+                } else if (httpContent instanceof LastHttpContent) {
+                    trailingHeadrs = pipe.getTrailingheaderMap();
+                    break;
+                }
             }
         }
-    }
-     Map headers = (Map) context.getProperty(MessageContext.TRANSPORT_HEADERS);
+        Map headers = (Map) context.getProperty(MessageContext.TRANSPORT_HEADERS);
 
 
-     String httpMethod = (String) context.getProperty(org.apache.axis2.Constants.Configuration.HTTP_METHOD);
-     HttpMethod httpMethod1 = new HttpMethod(httpMethod);
+        String httpMethod = (String) context.getProperty(org.apache.axis2.Constants.Configuration.HTTP_METHOD);
+        HttpMethod httpMethod1 = new HttpMethod(httpMethod);
 
-     String httpVersion = (String) context.getProperty(Constants.HTTP_VERSION);
-     HttpVersion httpVersion1 = new HttpVersion(httpVersion,true);
-
-
-     FullHttpRequest request = new DefaultFullHttpRequest(httpVersion1,httpMethod1,uri,content);
+        String httpVersion = (String) context.getProperty(Constants.HTTP_VERSION);
+        HttpVersion httpVersion1 = new HttpVersion(httpVersion, true);
 
 
-      if(headers != null) {
-          Iterator iterator = headers.keySet().iterator();
-          while (iterator.hasNext()) {
-              String key = (String) iterator.next();
-              request.headers().add(key, headers.get(key));
-          }
-      }
-    if(trailingHeadrs != null){
-        Iterator iterator = trailingHeadrs.keySet().iterator();
-        while (iterator.hasNext()) {
-            String key = (String) iterator.next();
-            request.trailingHeaders().add(key, trailingHeadrs.get(key));
+        FullHttpRequest request = new DefaultFullHttpRequest(httpVersion1, httpMethod1, uri, content);
+
+
+        if (headers != null) {
+            Iterator iterator = headers.keySet().iterator();
+            while (iterator.hasNext()) {
+                String key = (String) iterator.next();
+                request.headers().add(key, headers.get(key));
+            }
         }
+        if (trailingHeadrs != null) {
+            Iterator iterator = trailingHeadrs.keySet().iterator();
+            while (iterator.hasNext()) {
+                String key = (String) iterator.next();
+                request.trailingHeaders().add(key, trailingHeadrs.get(key));
+            }
+        }
+        return request;
     }
-   return request;
-}
 
     private HttpRequest createHttpRequest(MessageContext context, String uri) {
 
@@ -264,10 +263,6 @@ private FullHttpRequest createFullHttpRequest(MessageContext context, String uri
     }
 
 
-
-
-
-
     private FullHttpResponse getHttpResponse(SOAPEnvelope soapEnvelope, String ContentType) {
         byte[] bytes = soapEnvelope.toString().getBytes();
         ByteBuf CONTENT = Unpooled.unreleasableBuffer(Unpooled.copiedBuffer(bytes));
@@ -280,17 +275,18 @@ private FullHttpRequest createFullHttpRequest(MessageContext context, String uri
 
     private FullHttpResponse getHttpResponseFrombyte(MessageContext context, String ContentType) {
         Pipe pipe = (Pipe) context.getProperty(Constants.PIPE);
-        ByteBuf content =Unpooled.unreleasableBuffer(Unpooled.buffer());;
-        while (true){
+        ByteBuf content = Unpooled.unreleasableBuffer(Unpooled.buffer());
+        ;
+        while (true) {
             HttpContent httpContent = pipe.getContent();
-            if(httpContent instanceof DefaultHttpContent){
-                ByteBuf byteBuf = ((DefaultHttpContent)httpContent).content();
+            if (httpContent instanceof DefaultHttpContent) {
+                ByteBuf byteBuf = ((DefaultHttpContent) httpContent).content();
                 byte[] bytes = new byte[byteBuf.readableBytes()];
                 byteBuf.readBytes(bytes);
                 content.writeBytes(bytes);
                 // content.writeBytes(bytes);
-            }else if(httpContent instanceof LastHttpContent){
-            //    trailingHeadrs = pipe.getTrailingheaderMap();
+            } else if (httpContent instanceof LastHttpContent) {
+                //    trailingHeadrs = pipe.getTrailingheaderMap();
                 break;
             }
         }
@@ -301,30 +297,33 @@ private FullHttpRequest createFullHttpRequest(MessageContext context, String uri
         return response;
 
     }
-private void writeResponse(ChannelHandlerContext channelHandlerContext, MessageContext context, String ContentType){
-    Pipe pipe = (Pipe) context.getProperty(Constants.PIPE);
-    ByteBuf content =Unpooled.unreleasableBuffer(Unpooled.buffer());;
-    DefaultHttpResponse defaultHttpResponse = new DefaultHttpResponse(HTTP_1_1,OK);
-    Map headers = (Map) context.getProperty(MessageContext.TRANSPORT_HEADERS);
-    if(headers != null) {
-        Iterator iterator = headers.keySet().iterator();
-        while (iterator.hasNext()) {
-            String key = (String) iterator.next();
-            defaultHttpResponse.headers().add(key, headers.get(key));
-        }
-    }
-    channelHandlerContext.write(defaultHttpResponse);
-    while (true){
-        HttpContent httpContent = pipe.getContent();
- if(httpContent instanceof LastHttpContent || httpContent instanceof DefaultLastHttpContent){
-            //    trailingHeadrs = pipe.getTrailingheaderMap();
-            channelHandlerContext.writeAndFlush(httpContent);
-            break;
-        }
-        channelHandlerContext.write(httpContent);
-    }
 
-}
+    private void writeResponse(ChannelHandlerContext channelHandlerContext, MessageContext context,
+                               String ContentType) {
+        Pipe pipe = (Pipe) context.getProperty(Constants.PIPE);
+        ByteBuf content = Unpooled.unreleasableBuffer(Unpooled.buffer());
+        ;
+        DefaultHttpResponse defaultHttpResponse = new DefaultHttpResponse(HTTP_1_1, OK);
+        Map headers = (Map) context.getProperty(MessageContext.TRANSPORT_HEADERS);
+        if (headers != null) {
+            Iterator iterator = headers.keySet().iterator();
+            while (iterator.hasNext()) {
+                String key = (String) iterator.next();
+                defaultHttpResponse.headers().add(key, headers.get(key));
+            }
+        }
+        channelHandlerContext.write(defaultHttpResponse);
+        while (true) {
+            HttpContent httpContent = pipe.getContent();
+            if (httpContent instanceof LastHttpContent || httpContent instanceof DefaultLastHttpContent) {
+                //    trailingHeadrs = pipe.getTrailingheaderMap();
+                channelHandlerContext.writeAndFlush(httpContent);
+                break;
+            }
+            channelHandlerContext.write(httpContent);
+        }
+
+    }
 
 
 }

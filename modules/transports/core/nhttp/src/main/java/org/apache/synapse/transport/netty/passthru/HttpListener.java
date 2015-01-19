@@ -72,7 +72,8 @@ public class HttpListener implements TransportListener {
     }
 
 
-    public void init(ConfigurationContext configurationContext, TransportInDescription transportInDescription) throws AxisFault {
+    public void init(ConfigurationContext configurationContext, TransportInDescription transportInDescription)
+               throws AxisFault {
         this.configurationContext = configurationContext;
         this.pttTransportInDescription = transportInDescription;
         namePrefix = transportInDescription.getName().toUpperCase(Locale.US);
@@ -113,8 +114,8 @@ public class HttpListener implements TransportListener {
                     ServerBootstrap b = new ServerBootstrap();
                     b.option(ChannelOption.SO_BACKLOG, sourceConfiguration.getBackLog());
                     b.group(bossGroup, workerGroup)
-                            .channel(NioServerSocketChannel.class)
-                            .childHandler(new SourceChannelInitializer(sourceConfiguration));
+                               .channel(NioServerSocketChannel.class)
+                               .childHandler(new SourceChannelInitializer(sourceConfiguration));
                     b.childOption(ChannelOption.TCP_NODELAY, true);
                     b.option(ChannelOption.SO_KEEPALIVE, true);
                     b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 15000);
@@ -129,7 +130,7 @@ public class HttpListener implements TransportListener {
                         ch.closeFuture().sync();
                         logger.info("Netty Passthrough Http Listner Started");
                     } catch (InterruptedException e) {
-                        logger.error(e.getMessage(),e);
+                        logger.error(e.getMessage(), e);
                     }
                 } finally {
                     bossGroup.shutdownGracefully();
@@ -137,7 +138,7 @@ public class HttpListener implements TransportListener {
                 }
             }
         },
-                "Inbound Listner"
+                                   "Inbound Listner"
         );
         listnerThread.start();
     }

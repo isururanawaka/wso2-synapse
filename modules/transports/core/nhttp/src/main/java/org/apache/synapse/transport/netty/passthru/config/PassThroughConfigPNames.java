@@ -58,7 +58,7 @@ public interface PassThroughConfigPNames {
     /**
      * Defines the maximum open connection limit.
      */
-   public String C_MAX_ACTIVE = "max_open_connections";
+    public String C_MAX_ACTIVE = "max_open_connections";
 
     /**
      * Defines whether ESB needs to preserve the original User-Agent header.

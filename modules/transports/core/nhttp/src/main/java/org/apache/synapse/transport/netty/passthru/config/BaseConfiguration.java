@@ -33,14 +33,15 @@ public abstract class BaseConfiguration {
      */
     protected ParameterInclude parameters = null;
 
-    /** The thread pool for executing the messages passing through */
+    /**
+     * The thread pool for executing the messages passing through
+     */
     private WorkerPool workerPool = null;
 
-    /** The Axis2 ConfigurationContext */
+    /**
+     * The Axis2 ConfigurationContext
+     */
     protected ConfigurationContext configurationContext = null;
-
-
-
 
 
     protected PassThroughConfiguration conf = PassThroughConfiguration.getInstance();
@@ -48,7 +49,7 @@ public abstract class BaseConfiguration {
     public BaseConfiguration(ConfigurationContext configurationContext,
                              ParameterInclude parameters,
                              WorkerPool workerPool
-                            ) {
+    ) {
         this.parameters = parameters;
         this.workerPool = workerPool;
         this.configurationContext = configurationContext;
@@ -59,19 +60,16 @@ public abstract class BaseConfiguration {
 
         if (workerPool == null) {
             workerPool = WorkerPoolFactory.getWorkerPool(
-                            conf.getWorkerPoolCoreSize(),
-                            conf.getWorkerPoolMaxSize(),
-                            conf.getWorkerThreadKeepaliveSec(),
-                            conf.getWorkerPoolQueueLen(),
-                            "Netty Pass-through Message Processing Thread Group",
-                            "NettyPassThroughMessageProcessor");
+                       conf.getWorkerPoolCoreSize(),
+                       conf.getWorkerPoolMaxSize(),
+                       conf.getWorkerThreadKeepaliveSec(),
+                       conf.getWorkerPoolQueueLen(),
+                       "Netty Pass-through Message Processing Thread Group",
+                       "NettyPassThroughMessageProcessor");
         }
 
 
-
     }
-
-
 
     public WorkerPool getWorkerPool() {
         return workerPool;
@@ -80,7 +78,6 @@ public abstract class BaseConfiguration {
     public ConfigurationContext getConfigurationContext() {
         return configurationContext;
     }
-
 
 
 }

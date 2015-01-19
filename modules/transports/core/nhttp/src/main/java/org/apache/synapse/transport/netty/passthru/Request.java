@@ -26,7 +26,6 @@ public class Request {
     private byte[] contentBytes;
 
 
-
     private String to;
     private String replyTo;
 
@@ -64,9 +63,6 @@ public class Request {
     public void setPipe(Pipe pipe) {
         this.pipe = pipe;
     }
-
-
-
 
 
     public byte[] getContentBytes() {

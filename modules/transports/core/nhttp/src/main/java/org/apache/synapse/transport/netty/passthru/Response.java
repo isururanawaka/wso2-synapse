@@ -1,7 +1,6 @@
 package org.apache.synapse.transport.netty.passthru;
 
 
-
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpResponse;
 import org.apache.http.HttpRequest;
@@ -85,15 +84,16 @@ public class Response {
 
     public void addHeader(String name, String value) {
 
-            httpheaders.put(name, value);
+        httpheaders.put(name, value);
 
     }
 
     public void setStatus(int status) {
         this.status = status;
     }
+
     public void removeHeader(String name) {
-       httpheaders.remove(name);
+        httpheaders.remove(name);
     }
 
 
@@ -104,6 +104,7 @@ public class Response {
     public void setStatusLine(String statusLine) {
         this.statusLine = statusLine;
     }
+
     public String getHeader(String name) {
         return httpheaders.get(name);
     }

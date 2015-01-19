@@ -32,18 +32,18 @@ public class SourceChannelInitializer extends ChannelInitializer<SocketChannel> 
     private SourceConfiguration sourceConfiguration;
 
 
-    protected  SourceChannelInitializer(SourceConfiguration sourceConfiguration){
+    protected SourceChannelInitializer(SourceConfiguration sourceConfiguration) {
         this.sourceConfiguration = sourceConfiguration;
     }
 
 
     @Override
     protected void initChannel(SocketChannel ch) throws Exception {
-        if(logger.isDebugEnabled()) {
+        if (logger.isDebugEnabled()) {
             logger.info("initializing channel pipeline");
         }
         ChannelPipeline p = ch.pipeline();
-        p.addLast(Constants.HTTP_CODEC,new HttpServerCodec());
+        p.addLast(Constants.HTTP_CODEC, new HttpServerCodec());
 //        p.addLast(Constants.HTTP_AGREGRATOR,new HttpObjectAggregator(Integer.MAX_VALUE));
         p.addLast(Constants.HANDLER, new SourceHandler(sourceConfiguration));
 
